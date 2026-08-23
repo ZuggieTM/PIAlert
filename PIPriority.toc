@@ -1,0 +1,21 @@
+## Interface: 120100
+## Title: PI Alert
+## Notes: Power Infusion alerts from whispers and allied cooldown activations.
+## Author: Jesper
+## Version: 1.0.25-beta
+## SavedVariables: PIPriorityV2DB
+## OptionalDeps: LibSharedMedia-3.0, SharedMedia, Masque
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibGetFrame-1.0\LibGetFrame-1.0.lua
+
+Defaults.lua
+Core.lua
+UnitMenu.lua
+Media.lua
+RequestManager.lua
+Glow.lua
+Detector.lua
+FrameAlerts.lua
+UI.lua

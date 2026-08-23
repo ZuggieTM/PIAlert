@@ -1,0 +1,17 @@
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local packages and generated archives
+*.zip
+*.pkgmeta
+
+# Local test and diagnostic output
+*.log
+coverage/
