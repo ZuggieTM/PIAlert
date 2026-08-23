@@ -57,7 +57,8 @@ NS.PRESET_SPELLS = {
         { id = 288613, label = "Trueshot" },
     },
     MAGE = {
-        { id = 365350, label = "Arcane Surge" },
+        -- The cast is 365350; the player buff is 365362.
+        { id = 365350, label = "Arcane Surge", auraIds = { 365350, 365362 } },
         { id = 190319, label = "Combustion" },
         { id = 12472,  label = "Icy Veins" },
     },
@@ -79,8 +80,9 @@ NS.PRESET_SPELLS = {
         { id = 121471, label = "Shadow Blades", auraIds = { 121471 } },
     },
     SHAMAN = {
-        { id = 114050, label = "Ascendance" },
-        { id = 114051, label = "Ascendance (Enhancement)" },
+        -- Ascendance has separate cast/aura IDs by specialization in 12.1.
+        { id = 114050, label = "Ascendance", auraIds = { 114050, 114051, 114052, 1219480 } },
+        { id = 114051, label = "Ascendance (Enhancement)", auraIds = { 114050, 114051, 114052, 1219480 } },
         { id = 198067, label = "Fire Elemental" },
         { id = 192249, label = "Storm Elemental" },
         { id = 51533,  label = "Feral Spirit" },

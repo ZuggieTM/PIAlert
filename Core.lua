@@ -307,6 +307,9 @@ function NS:RegisterSlashCommands()
         elseif command == "frames" then
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to inspect active alert frames."); return end
             if NS.FrameAlerts then NS.FrameAlerts:PrintFrameCache() end
+        elseif command == "status" then
+            if not NS:IsActive() then NS:Print("Power Infusion must be talented to inspect spell trackers."); return end
+            if NS.Detector then NS.Detector:PrintTrackerStatus() end
         elseif command == "test" then
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to test an alert."); return end
             if NS.RequestManager then NS.RequestManager:TestRequest() end
@@ -314,7 +317,7 @@ function NS:RegisterSlashCommands()
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to clear active alerts."); return end
             if NS.RequestManager then NS.RequestManager:ClearAll("slash") end
         else
-            NS:Print("Commands: /pia, /pia test, /pia debug, /pia frames, /pia clear, /pia reset")
+            NS:Print("Commands: /pia, /pia test, /pia status, /pia debug, /pia frames, /pia clear, /pia reset")
         end
     end
 end

@@ -102,10 +102,18 @@ COMMANDS
 --------
 /pia            Open/close settings
 /pia test       Show a test request
+/pia status     Print configured-player and secure spell-tracker status
 /pia debug      Toggle debug logging
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.26-beta
+-----------
+- Corrected the Retail 12.1 AuraContainer order: SetUnit, add slots, then SetEnabled.
+- Fixed foreign-class cooldowns disappearing when Blizzard's cooldown-aura lookup returns nil.
+- Added the Arcane Surge buff ID and all current Ascendance cast/aura variants.
+- Added /pia status for live selected-player and secure-tracker diagnostics.
 
 1.0.25-beta
 -----------

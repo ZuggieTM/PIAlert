@@ -124,6 +124,7 @@ end
 function Detector:Init()
     self.auraStates = {}
     self.auraStateCache = setmetatable({}, { __mode = "k" })
+    self.cooldownAuraCache = {}
     self.auraEngineAvailable = false
     self.lastSecretDebugAt = 0
     self.refreshSerial = 0
@@ -395,26 +396,34 @@ end
 -- when one of the configured cooldown buffs is present.
 -- -----------------------------------------------------------------------------
 
-function Detector:GetAuraIDsForSpell(spell, isCustom)
+function Detector:GetAuraIDsForSpell(spell)
     if type(spell.auraIds) == "table" and #spell.auraIds > 0 then
         return spell.auraIds
     end
 
-    -- A cooldown's cast ID is not necessarily the ID of its player buff (and
-    -- summons may have no helpful player aura at all). Let Blizzard provide the
-    -- canonical cooldown aura instead of silently matching the wrong buff.
+    local logicalID = tonumber(spell.id)
+    if not logicalID then return {} end
+    if self.cooldownAuraCache and self.cooldownAuraCache[logicalID] then
+        return self.cooldownAuraCache[logicalID]
+    end
+
+    -- Blizzard's lookup can return nil for cooldowns outside the player's own
+    -- spellbook. Always retain the entered/cast ID, then add Blizzard's resolved
+    -- aura ID when available. Curated auraIds above handle known split IDs.
+    local ids = { logicalID }
     if C_UnitAuras and type(C_UnitAuras.GetCooldownAuraBySpellID) == "function" then
-        local ok, auraID = pcall(C_UnitAuras.GetCooldownAuraBySpellID, spell.id)
+        local ok, auraID = pcall(C_UnitAuras.GetCooldownAuraBySpellID, logicalID)
         if ok and not NS:IsSecretValue(auraID) then
             auraID = tonumber(auraID)
-            if auraID and auraID > 0 then return { auraID } end
+            if auraID and auraID > 0 and auraID ~= logicalID then
+                ids[#ids + 1] = auraID
+            end
         end
     end
 
-    -- Custom entries are documented in the UI as aura IDs, so retaining the
-    -- entered ID as their fallback remains useful and predictable.
-    if isCustom then return { spell.id } end
-    return {}
+    self.cooldownAuraCache = self.cooldownAuraCache or {}
+    self.cooldownAuraCache[logicalID] = ids
+    return ids
 end
 
 function Detector:BuildAuraMapForClass(classToken)
@@ -423,7 +432,7 @@ function Detector:BuildAuraMapForClass(classToken)
     for _, spell in ipairs(NS.PRESET_SPELLS[classToken] or {}) do
         local logicalID = tonumber(spell.id)
         if logicalID and NS.db.spells and NS.db.spells[logicalID] == true then
-            for _, auraID in ipairs(self:GetAuraIDsForSpell(spell, false)) do
+            for _, auraID in ipairs(self:GetAuraIDsForSpell(spell)) do
                 auraID = tonumber(auraID)
                 if auraID and auraID > 0 then map[auraID] = true end
             end
@@ -436,7 +445,7 @@ function Detector:BuildAuraMapForClass(classToken)
     for _, spell in ipairs(NS.db.customSpells or {}) do
         local logicalID = tonumber(spell.id)
         if logicalID and NS.db.spells and NS.db.spells[logicalID] == true then
-            for _, auraID in ipairs(self:GetAuraIDsForSpell(spell, true)) do
+            for _, auraID in ipairs(self:GetAuraIDsForSpell(spell)) do
                 auraID = tonumber(auraID)
                 if auraID and auraID > 0 then map[auraID] = true end
             end
@@ -630,6 +639,9 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap)
     container:SetAllPoints(target)
     container:SetFrameStrata("HIGH")
     container:EnableMouse(false)
+    -- Retail 12.1 initialization order is strict: assign the unit before slots,
+    -- then enable the container only after every slot has been registered.
+    container:SetUnit(unit)
 
     local state = {
         unit = unit,
@@ -672,9 +684,7 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap)
         end)
     end
 
-    -- Unit LAST. Blizzard_AuraContainer evaluates aura event registration after
-    -- slots exist, so assigning the unit after AddAuraSlot is important.
-    container:SetUnit(unit)
+    -- Enabled LAST so Blizzard wires aura events after the slot topology exists.
     container:SetEnabled(true)
     container:UpdateAllAuras()
     container:Show()
@@ -846,6 +856,42 @@ function Detector:SuppressSecureVisuals()
     self.lastPIReady = false
     for _, state in pairs(self.auraStates or {}) do
         self:SetAuraStateEnabled(state, false)
+    end
+end
+
+function Detector:PrintTrackerStatus()
+    local enabledSpells = 0
+    for _, enabled in pairs((NS.db and NS.db.spells) or {}) do
+        if enabled == true then enabledSpells = enabledSpells + 1 end
+    end
+
+    local activeTrackers = 0
+    for _ in pairs(self.auraStates or {}) do activeTrackers = activeTrackers + 1 end
+    NS:Print(string.format(
+        "Spell trackers: %d enabled spell(s), %d active secure tracker(s), PI ready=%s, combat=%s.",
+        enabledSpells, activeTrackers, tostring(self:IsPIReady()), tostring(IsInCombatLockdown())
+    ))
+
+    for _, configuredName in ipairs((NS.db.requesters and NS.db.requesters.players) or {}) do
+        local unit = NS:FindGroupUnitByName(configuredName)
+        if not unit then
+            NS:Print(tostring(configuredName) .. " -> not found in the current group.")
+        else
+            local _, classToken = UnitClass(unit)
+            local assistOK, canAssist = pcall(UnitCanAssist, "player", unit)
+            if not assistOK or NS:IsSecretValue(canAssist) then canAssist = "unknown" end
+            local state = self.auraStates and self.auraStates[unit]
+            local signature = state and state.signature or "none"
+            if not state and not IsInCombatLockdown() and classToken then
+                signature = self:AuraMapSignature(self:BuildAuraMapForClass(classToken))
+                if signature == "" then signature = "none" end
+            end
+            NS:Print(string.format(
+                "%s -> %s (%s), assistable=%s, aura IDs=[%s], tracker=%s.",
+                tostring(configuredName), tostring(unit), tostring(classToken or "UNKNOWN"),
+                tostring(canAssist), tostring(signature), state and "active" or "missing"
+            ))
+        end
     end
 end
 
