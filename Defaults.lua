@@ -136,7 +136,7 @@ NS.DEFAULTS = {
         soundCooldown = 2,
 
         -- Whisper alerts use the animated renderer. Secure allied spell alerts
-        -- use the same color/thickness settings on a static restricted border.
+        -- use a static restricted representation of the chosen style.
         glowStyle = "PIXEL", -- PIXEL, AUTOCAST, BUTTON
         glowColorMode = "CUSTOM", -- CUSTOM, CLASS
         glowColor = { 1.00, 0.82, 0.20, 1.00 },

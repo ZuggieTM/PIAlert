@@ -1,4 +1,4 @@
-PI Alert 1.0.24-beta
+PI Alert 1.0.27-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -69,9 +69,9 @@ Each alert type can be enabled independently:
 - Sound
 
 PI Alert uses its bundled native AnimationGroup renderer for ordinary whisper
-requests. Blizzard-managed allied spell alerts use a static secure border,
-because animation updates are disabled inside restricted aura-button subtrees.
-Both request paths share the selected color and border thickness.
+requests. Blizzard-managed allied spell alerts use a static secure version of
+the selected style, because animation updates are disabled inside restricted
+aura-button subtrees. Both request paths share the selected color.
 
 Glow styles:
 - Pixel Glow: speed, number of lines and thickness
@@ -79,8 +79,9 @@ Glow styles:
 - Button Glow: speed
 - Custom color or requester class color
 
-Styles and speed apply to whisper/self-test animations. Secure allied spell
-alerts use a static border with the selected color and thickness.
+Speed applies to whisper/self-test animations. Secure allied spell alerts show
+Pixel as a dashed border, AutoCast as a broad luminous border, and Button as a
+sharp border, using the selected color.
 
 Use /pia test to preview the configured alert behavior on your own resolved
 party/raidframe.
@@ -107,6 +108,14 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.27-beta
+-----------
+- Stopped changing restricted AuraButtons after initialization, fixing the
+  forbidden-object SetAlpha error seen during dungeons and raids.
+- Secure Pixel, AutoCast and Button alerts now have distinct static visuals
+  using the selected glow color.
+- Cosmetic secure-alert changes now rebuild a frozen visual out of combat.
 
 1.0.26-beta
 -----------

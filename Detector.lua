@@ -4,6 +4,9 @@ local Detector = {}
 NS.Detector = Detector
 
 local AURA_FILTER = "HELPFUL"
+local SECURE_MEDIA = "Interface\\AddOns\\PIPriority\\Media\\"
+local SECURE_DASH_H = SECURE_MEDIA .. "secure-dash-h.tga"
+local SECURE_DASH_V = SECURE_MEDIA .. "secure-dash-v.tga"
 
 local function IsWordChar(ch)
     return ch and ch ~= "" and ch:match("[%w]") ~= nil
@@ -91,6 +94,81 @@ local function UpdateStaticBorder(border, color, thickness)
     for index, texture in ipairs(border.inner or {}) do
         texture:SetColorTexture(r, g, b, math.min(1, a))
         if index <= 2 then texture:SetHeight(thickness) else texture:SetWidth(thickness) end
+    end
+end
+
+local function CreateStaticPixelGlow(frame, target, color, thickness, lineCount)
+    thickness = math.floor(Clamp(thickness, 1, 8, 2) + 0.5)
+    lineCount = math.floor(Clamp(lineCount, 1, 20, 12) + 0.5)
+    color = color or { 1.00, 0.82, 0.20, 1.00 }
+
+    local width, height = 100, 40
+    if target and type(target.GetSize) == "function" then
+        local ok, targetWidth, targetHeight = pcall(target.GetSize, target)
+        if ok and not NS:IsSecretValue(targetWidth) and not NS:IsSecretValue(targetHeight)
+            and type(targetWidth) == "number" and type(targetHeight) == "number"
+            and targetWidth > 0 and targetHeight > 0
+        then
+            width, height = targetWidth, targetHeight
+        end
+    end
+
+    local perimeter = math.max(1, 2 * (width + height))
+    local horizontalRepeats = math.max(1, lineCount * width / perimeter)
+    local verticalRepeats = math.max(1, lineCount * height / perimeter)
+    local r, g, b, a = color[1] or 1, color[2] or 0.82, color[3] or 0.20, color[4] or 1
+
+    local function MakeEdge(texturePath)
+        local texture = frame:CreateTexture(nil, "OVERLAY", nil, 7)
+        texture:SetTexture(texturePath, "REPEAT", "REPEAT")
+        texture:SetBlendMode("ADD")
+        texture:SetVertexColor(r, g, b, a)
+        return texture
+    end
+
+    local top = MakeEdge(SECURE_DASH_H)
+    top:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+    top:SetHeight(thickness)
+    top:SetTexCoord(0, horizontalRepeats, 0, 1)
+
+    local bottom = MakeEdge(SECURE_DASH_H)
+    bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+    bottom:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    bottom:SetHeight(thickness)
+    bottom:SetTexCoord(horizontalRepeats, 0, 0, 1)
+
+    local left = MakeEdge(SECURE_DASH_V)
+    left:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+    left:SetWidth(thickness)
+    left:SetTexCoord(0, 1, verticalRepeats, 0)
+
+    local right = MakeEdge(SECURE_DASH_V)
+    right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+    right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    right:SetWidth(thickness)
+    right:SetTexCoord(0, 1, 0, verticalRepeats)
+end
+
+local function CreateSecureGlowArt(frame, target, visual)
+    local style = visual.glowStyle or "PIXEL"
+    local color = visual.glowColor or { 1.00, 0.82, 0.20, 1.00 }
+    local thickness = visual.glowPixelThickness or 2
+
+    if style == "PIXEL" then
+        CreateStaticPixelGlow(frame, target, color, thickness, visual.glowPixelLines)
+        return
+    end
+
+    -- AnimationGroups cannot advance below Blizzard's restricted aura button.
+    -- AutoCast therefore gets a broad luminous border and Button a sharp one.
+    local border = CreateStaticBorder(frame)
+    if style == "AUTOCAST" then
+        local scale = Clamp(visual.glowAutoCastScale, 0.5, 3.0, 1.0)
+        UpdateStaticBorder(border, color, math.max(2, thickness * scale + 1))
+    else
+        UpdateStaticBorder(border, color, thickness)
     end
 end
 
@@ -265,8 +343,8 @@ function Detector:RefreshRequesterState()
 end
 
 function Detector:OnSettingsChanged()
-    -- Existing secure slots are restyled in place. A new container is created
-    -- only when its unit, frame, or exact aura-ID signature actually changes.
+    -- Restricted aura buttons are immutable after their initialization callback.
+    -- RefreshAuraState rebuilds only when the frozen visual signature changed.
     self:ScheduleAuraRefresh(0.08)
 end
 
@@ -477,6 +555,51 @@ function Detector:GetSecureGlowColor(unit)
     return { 1.00, 0.82, 0.20, 1.00 }
 end
 
+function Detector:GetSecureVisualConfig(unit)
+    local alerts = NS.db.alerts or {}
+    local auraIcon = NS.db.auraIcon or {}
+    local sourceColor = self:GetSecureGlowColor(unit)
+    local color = {
+        Clamp(sourceColor[1], 0, 1, 1.00),
+        Clamp(sourceColor[2], 0, 1, 0.82),
+        Clamp(sourceColor[3], 0, 1, 0.20),
+        Clamp(sourceColor[4], 0, 1, 1.00),
+    }
+    local visual = {
+        glow = alerts.glow == true,
+        frameIcon = alerts.frameIcon == true,
+        auraIcon = alerts.auraIcon == true,
+        glowStyle = alerts.glowStyle or "PIXEL",
+        glowColor = color,
+        glowPixelLines = math.floor(Clamp(alerts.glowPixelLines, 1, 20, 12) + 0.5),
+        glowPixelThickness = Clamp(alerts.glowPixelThickness, 1, 8, 2),
+        glowAutoCastScale = Clamp(alerts.glowAutoCastScale, 0.5, 3.0, 1.0),
+        auraIconSize = math.floor(Clamp(auraIcon.size, 12, 96, 52) + 0.5),
+    }
+    local signatureParts = {
+        visual.glow and "1" or "0",
+        visual.frameIcon and "1" or "0",
+        visual.auraIcon and "1" or "0",
+    }
+    if visual.glow then
+        signatureParts[#signatureParts + 1] = visual.glowStyle
+        signatureParts[#signatureParts + 1] = string.format(
+            "%.4f,%.4f,%.4f,%.4f", color[1], color[2], color[3], color[4]
+        )
+        signatureParts[#signatureParts + 1] = string.format("%.2f", visual.glowPixelThickness)
+        if visual.glowStyle == "PIXEL" then
+            signatureParts[#signatureParts + 1] = tostring(visual.glowPixelLines)
+        elseif visual.glowStyle == "AUTOCAST" then
+            signatureParts[#signatureParts + 1] = string.format("%.2f", visual.glowAutoCastScale)
+        end
+    end
+    if visual.auraIcon then
+        signatureParts[#signatureParts + 1] = tostring(visual.auraIconSize)
+    end
+    visual.signature = table.concat(signatureParts, ":")
+    return visual
+end
+
 function Detector:AddSecureAuraSlot(container, key, auraMap, initializeFrame)
     local ok, button = pcall(container.AddAuraSlot, container, key, AURA_FILTER, {
         candidateFilters = { includeSpellIDs = auraMap },
@@ -588,34 +711,7 @@ function Detector:SetAuraStateEnabled(state, enabled)
     end
 end
 
-function Detector:ApplySecureVisualSettings(state)
-    if not state or IsInCombatLockdown() then return false end
-    local alerts = NS.db.alerts or {}
-
-    if state.glowButton then
-        state.glowButton:SetAlpha(alerts.glow and 1 or 0)
-        UpdateStaticBorder(
-            state.glowBorder,
-            self:GetSecureGlowColor(state.unit),
-            alerts.glowPixelThickness
-        )
-    end
-    if state.frameIconButton then
-        state.frameIconButton:SetAlpha(alerts.frameIcon and 1 or 0)
-    end
-    if state.auraIconButton then
-        state.auraIconButton:SetAlpha(alerts.auraIcon and 1 or 0)
-        local size = (NS.db.auraIcon and NS.db.auraIcon.size) or 52
-        state.auraIconButton:SetSize(size, size)
-    end
-
-    if state.enabled then
-        if alerts.sound then self:RegisterAuraSounds(state) else self:UnregisterAuraSounds(state) end
-    end
-    return true
-end
-
-function Detector:CreateSecureAuraState(unit, classToken, target, auraMap)
+function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visual)
     if IsInCombatLockdown() then
         self.pendingAuraRefresh = true
         return nil
@@ -624,13 +720,13 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap)
     if not target then return nil end
 
     local signature = self:AuraMapSignature(auraMap)
-    local cacheKey = tostring(unit) .. "|" .. tostring(classToken) .. "|" .. signature
+    visual = visual or self:GetSecureVisualConfig(unit)
+    local cacheKey = tostring(unit) .. "|" .. tostring(classToken) .. "|" .. signature .. "|" .. visual.signature
     local cache = self.auraStateCache[target]
     local cached = cache and cache[cacheKey]
     if cached then
         cached.guid = UnitGUID(unit)
         cached.auraMap = auraMap
-        self:ApplySecureVisualSettings(cached)
         self:SetAuraStateEnabled(cached, true)
         return cached
     end
@@ -650,37 +746,48 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap)
         target = target,
         auraMap = auraMap,
         signature = signature,
+        visualSignature = visual.signature,
         cacheKey = cacheKey,
         container = container,
         enabled = true,
     }
 
-    -- All three slots are created once. Visual settings can then be changed in
-    -- place without continually orphaning restricted AuraContainer frames.
-    state.glowButton = self:AddSecureAuraSlot(container, "pip_secure_glow", auraMap, function(button)
-        button:EnableMouse(false)
-        button:SetAllPoints(target)
-        button:SetFrameStrata("HIGH")
-        button:SetFrameLevel((target:GetFrameLevel() or 1) + 15)
-        state.glowBorder = CreateStaticBorder(button)
-    end)
+    -- Every property of an AuraButton must be finalized inside initializeFrame.
+    -- Once Blizzard applies its restricted aura state, even out-of-combat Lua
+    -- calls such as SetAlpha can be rejected as forbidden-object access.
+    if visual.glow then
+        state.glowButton = self:AddSecureAuraSlot(container, "pip_secure_glow", auraMap, function(button)
+            local targetLevel = 1
+            local ok, level = pcall(target.GetFrameLevel, target)
+            if ok and not NS:IsSecretValue(level) and type(level) == "number" then
+                targetLevel = level
+            end
+            button:EnableMouse(false)
+            button:SetAllPoints(target)
+            button:SetFrameStrata("HIGH")
+            button:SetFrameLevel(targetLevel + 15)
+            CreateSecureGlowArt(button, target, visual)
+        end)
+    end
 
-    state.frameIconButton = self:AddSecureAuraSlot(container, "pip_secure_frame_icon", auraMap, function(button)
-        button:EnableMouse(false)
-        button:SetPoint("CENTER", target, "CENTER", 0, 0)
-        button:SetFrameStrata("HIGH")
-        button:SetFrameLevel(1001)
-        AddPIIcon(button, 22)
-    end)
+    if visual.frameIcon then
+        state.frameIconButton = self:AddSecureAuraSlot(container, "pip_secure_frame_icon", auraMap, function(button)
+            button:EnableMouse(false)
+            button:SetPoint("CENTER", target, "CENTER", 0, 0)
+            button:SetFrameStrata("HIGH")
+            button:SetFrameLevel(1001)
+            AddPIIcon(button, 22)
+        end)
+    end
 
-    if NS.FrameAlerts and NS.FrameAlerts.auraIcon then
+    if visual.auraIcon and NS.FrameAlerts and NS.FrameAlerts.auraIcon then
         local auraAnchor = NS.FrameAlerts.auraIcon
         state.auraIconButton = self:AddSecureAuraSlot(container, "pip_secure_aura_icon", auraMap, function(button)
             button:EnableMouse(false)
             button:SetPoint("CENTER", auraAnchor, "CENTER", 0, 0)
             button:SetFrameStrata("HIGH")
             button:SetFrameLevel(1002)
-            AddPIIcon(button, (NS.db.auraIcon and NS.db.auraIcon.size) or 52)
+            AddPIIcon(button, visual.auraIconSize)
         end)
     end
 
@@ -688,7 +795,7 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap)
     container:SetEnabled(true)
     container:UpdateAllAuras()
     container:Show()
-    self:ApplySecureVisualSettings(state)
+    self:RegisterAuraSounds(state)
 
     if not cache then
         cache = {}
@@ -774,13 +881,16 @@ function Detector:RefreshAuraState(unit)
 
     local auraMap = self:BuildAuraMapForClass(classToken)
     local signature = self:AuraMapSignature(auraMap)
+    local visual = self:GetSecureVisualConfig(unit)
     if signature == "" then
         if state then self:RetireAuraState(state); self.auraStates[unit] = nil end
         return
     end
 
     local guid = UnitGUID(unit)
-    if state and (state.guid ~= guid or state.classToken ~= classToken or state.signature ~= signature) then
+    if state and (state.guid ~= guid or state.classToken ~= classToken or state.signature ~= signature
+        or state.visualSignature ~= visual.signature)
+    then
         self:RetireAuraState(state)
         self.auraStates[unit] = nil
         state = nil
@@ -798,13 +908,16 @@ function Detector:RefreshAuraState(unit)
     local needsRebuild = not state or state.target ~= target
 
     if not needsRebuild then
-        self:ApplySecureVisualSettings(state)
-        if self:IsPIReady() then self:SetAuraStateEnabled(state, true) end
+        if self:IsPIReady() then
+            self:SetAuraStateEnabled(state, true)
+        else
+            self:SetAuraStateEnabled(state, false)
+        end
         return
     end
 
     if state then self:RetireAuraState(state) end
-    self.auraStates[unit] = self:CreateSecureAuraState(unit, classToken, target, auraMap)
+    self.auraStates[unit] = self:CreateSecureAuraState(unit, classToken, target, auraMap, visual)
 end
 
 function Detector:RefreshAuraDetectors()
