@@ -64,7 +64,8 @@ ALERTS
 ------
 Each alert type can be enabled independently:
 - Glow on raid/party frame
-- Power Infusion icon on raid/party frame
+- Power Infusion icon on raid/party frame, with a secure swipe showing the
+  tracked buff's remaining duration
 - Movable Power Infusion aura icon
 - Sound
 
@@ -116,6 +117,12 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.33-beta
+-----------
+- Added a Blizzard-driven duration swipe to each secure raidframe PI icon.
+- The swipe shows the remaining duration of the tracked active buff without
+  reading protected timer values in addon Lua.
 
 1.0.32-beta
 -----------

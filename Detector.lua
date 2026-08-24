@@ -215,7 +215,7 @@ local function CreateSecureGlowArt(frame, target, visual)
     StartSecurePulse(frame, visual.glowSpeed)
 end
 
-local function AddPIIcon(frame, size)
+local function AddPIIcon(frame, size, showDurationSwipe)
     size = math.floor(Clamp(size, 12, 96, 22) + 0.5)
     frame:SetSize(size, size)
 
@@ -227,6 +227,26 @@ local function AddPIIcon(frame, size)
     icon:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, -2)
     icon:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
     icon:SetTexture(NS:GetSpellIcon(NS.PI_SPELL_ID))
+
+    if showDurationSwipe and frame.SetDurationCooldown then
+        local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
+        cooldown:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, -2)
+        cooldown:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+        cooldown:SetFrameLevel(frame:GetFrameLevel() + 1)
+        cooldown:EnableMouse(false)
+        cooldown:SetReverse(true)
+        cooldown:SetDrawSwipe(true)
+        cooldown:SetDrawEdge(false)
+        cooldown:SetDrawBling(false)
+        if cooldown.SetHideCountdownNumbers then
+            cooldown:SetHideCountdownNumbers(true)
+        end
+        cooldown:Show()
+
+        -- Blizzard binds the matched aura's protected Duration object directly
+        -- to this swipe. No remaining-time value is read by addon Lua.
+        frame:SetDurationCooldown(cooldown)
+    end
 
     local borderColor = { 1.00, 0.82, 0.20, 1.00 }
     local top = frame:CreateTexture(nil, "OVERLAY")
@@ -880,7 +900,7 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
             button:SetPoint("CENTER", target, "CENTER", 0, 0)
             button:SetFrameStrata("HIGH")
             button:SetFrameLevel(1001)
-            AddPIIcon(button, 22)
+            AddPIIcon(button, 22, true)
         end)
     end
 
@@ -891,7 +911,7 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
             button:SetPoint("CENTER", auraAnchor, "CENTER", 0, 0)
             button:SetFrameStrata("HIGH")
             button:SetFrameLevel(1002)
-            AddPIIcon(button, visual.auraIconSize)
+            AddPIIcon(button, visual.auraIconSize, false)
         end)
     end
 
