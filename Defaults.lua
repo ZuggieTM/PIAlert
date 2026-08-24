@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 7
+NS.SETTINGS_REVISION = 8
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -132,12 +132,12 @@ NS.DEFAULTS = {
         frameIcon = true,
         auraIcon = true,
         sound = true,
-        spellAlertTiming = "ALWAYS_TRACK", -- ALWAYS_TRACK, PI_READY
+        spellAlertTiming = "PI_READY", -- PI_READY, ALWAYS_TRACK
         soundKey = "builtin:Blizzard - Raid Warning",
         soundCooldown = 2,
 
-        -- Whisper alerts use AnimationGroups. Secure allied spell alerts use an
-        -- unrestricted external driver for their restricted visual textures.
+        -- Whisper alerts and secure allied spell alerts both use native
+        -- AnimationGroups; the secure pulse is frozen during AuraButton init.
         glowStyle = "PIXEL", -- PIXEL, AUTOCAST, BUTTON
         glowColorMode = "CUSTOM", -- CUSTOM, CLASS
         glowColor = { 1.00, 0.82, 0.20, 1.00 },

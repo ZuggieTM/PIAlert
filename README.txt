@@ -69,17 +69,17 @@ Each alert type can be enabled independently:
 - Sound
 
 Spell alert timing has two modes:
-- Always Track (default): tracked allied buffs stay visible regardless of PI's
+- Always Track: tracked allied buffs stay visible regardless of PI's
   cooldown. Their sound is registered only while PI is ready, so PI becoming
   ready does not replay the sound for a buff that was already active.
-- PI Ready Only: both visuals and sound are gated by PI readiness. If a tracked
+- PI Ready Only (default): both visuals and sound are gated by PI readiness. If a tracked
   buff is already active when PI becomes ready, Blizzard may show its remaining
   visual, but its activation sound is not replayed.
 
-PI Alert uses its bundled native AnimationGroup renderer for ordinary whisper
-requests. Blizzard-managed allied spell alerts animate their restricted visual
-textures from an unrestricted external driver. Both paths share the selected
-style, speed and color without reading protected aura state.
+PI Alert uses native AnimationGroups for ordinary whisper requests. Blizzard-
+managed allied spell alerts start a C-side alpha pulse inside their secure
+initialization window. Both paths share the selected style, speed and color
+without reading protected aura state.
 
 Glow styles:
 - Pixel Glow: speed, number of lines and thickness
@@ -87,8 +87,8 @@ Glow styles:
 - Button Glow: speed
 - Custom color or requester class color
 
-Secure Pixel uses moving dashes. Secure AutoCast and Button borders pulse using
-the selected speed and color.
+Secure Pixel, AutoCast and Button visuals use a native alpha pulse created before
+Blizzard seals the AuraButton. The selected speed and color apply to that pulse.
 
 Use /pia test to preview the configured alert behavior on your own resolved
 party/raidframe.
@@ -115,6 +115,13 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.30-beta
+-----------
+- Replaced the forbidden per-frame secure-glow driver with a native C-side alpha
+  AnimationGroup created inside the AuraButton initialization window.
+- Changed the default spell-alert timing to PI Ready Only, including existing
+  1.0.29 settings, so casting PI immediately hides tracked allied-buff visuals.
 
 1.0.29-beta
 -----------

@@ -150,17 +150,29 @@ local function CreateStaticPixelGlow(frame, target, color, thickness, lineCount)
     right:SetWidth(thickness)
     right:SetTexCoord(0, 1, 0, verticalRepeats)
 
-    return {
-        kind = "PIXEL",
-        top = top,
-        bottom = bottom,
-        left = left,
-        right = right,
-        horizontalRepeats = horizontalRepeats,
-        verticalRepeats = verticalRepeats,
-        phase = 0,
-        enabled = true,
-    }
+end
+
+local function StartSecurePulse(frame, speed)
+    -- AuraButton descendants reject tainted per-frame writes after initialization.
+    -- A native Alpha AnimationGroup started here runs entirely C-side and remains
+    -- active after Blizzard seals the button.
+    local cycle = 1 / Clamp(speed, 0.25, 3.0, 1.0)
+    local group = frame:CreateAnimationGroup()
+    group:SetLooping("REPEAT")
+
+    local fadeOut = group:CreateAnimation("Alpha")
+    fadeOut:SetFromAlpha(1)
+    fadeOut:SetToAlpha(0.30)
+    fadeOut:SetDuration(cycle / 2)
+    fadeOut:SetOrder(1)
+
+    local fadeIn = group:CreateAnimation("Alpha")
+    fadeIn:SetFromAlpha(0.30)
+    fadeIn:SetToAlpha(1)
+    fadeIn:SetDuration(cycle / 2)
+    fadeIn:SetOrder(2)
+
+    group:Play()
 end
 
 local function CreateSecureGlowArt(frame, target, visual)
@@ -169,31 +181,18 @@ local function CreateSecureGlowArt(frame, target, visual)
     local thickness = visual.glowPixelThickness or 2
 
     if style == "PIXEL" then
-        local animation = CreateStaticPixelGlow(frame, target, color, thickness, visual.glowPixelLines)
-        animation.speed = visual.glowSpeed or 1
-        return animation
-    end
-
-    -- AnimationGroups cannot advance below Blizzard's restricted aura button.
-    -- The external driver pulses a broad AutoCast border or a sharp Button one.
-    local border = CreateStaticBorder(frame)
-    if style == "AUTOCAST" then
-        local scale = Clamp(visual.glowAutoCastScale, 0.5, 3.0, 1.0)
-        UpdateStaticBorder(border, color, math.max(2, thickness * scale + 1))
+        CreateStaticPixelGlow(frame, target, color, thickness, visual.glowPixelLines)
     else
-        UpdateStaticBorder(border, color, thickness)
+        local border = CreateStaticBorder(frame)
+        if style == "AUTOCAST" then
+            local scale = Clamp(visual.glowAutoCastScale, 0.5, 3.0, 1.0)
+            UpdateStaticBorder(border, color, math.max(2, thickness * scale + 1))
+        else
+            UpdateStaticBorder(border, color, thickness)
+        end
     end
 
-    local textures = {}
-    for _, texture in ipairs(border.outer or {}) do textures[#textures + 1] = texture end
-    for _, texture in ipairs(border.inner or {}) do textures[#textures + 1] = texture end
-    return {
-        kind = "PULSE",
-        textures = textures,
-        speed = visual.glowSpeed or 1,
-        elapsed = 0,
-        enabled = true,
-    }
+    StartSecurePulse(frame, visual.glowSpeed)
 end
 
 local function AddPIIcon(frame, size)
@@ -234,14 +233,6 @@ function Detector:Init()
     self.pendingClearAuraStates = false
     self.piCooldownLatched = false
     self.lastPIReady = nil
-    self.secureGlowAnimations = setmetatable({}, { __mode = "k" })
-
-    self.secureGlowDriver = CreateFrame("Frame", nil, UIParent)
-    self.secureGlowDriver:SetScript("OnUpdate", function(_, elapsed)
-        Detector:UpdateSecureGlowAnimations(elapsed)
-    end)
-    self.secureGlowDriver:Show()
-
     self.frame = CreateFrame("Frame")
     self.frame:RegisterEvent("CHAT_MSG_WHISPER")
     self.frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
@@ -267,36 +258,6 @@ function Detector:Init()
     C_Timer.After(0.5, function()
         if NS.db and NS:IsActive() then Detector:RefreshAuraDetectors() end
     end)
-end
-
-function Detector:UpdateSecureGlowAnimations(elapsed)
-    elapsed = tonumber(elapsed) or 0
-    self.secureGlowElapsed = (self.secureGlowElapsed or 0) + elapsed
-    if self.secureGlowElapsed < (1 / 30) then return end
-    elapsed = self.secureGlowElapsed
-    self.secureGlowElapsed = 0
-
-    for animation in pairs(self.secureGlowAnimations or {}) do
-        if animation.enabled then
-            local speed = Clamp(animation.speed, 0.25, 3.0, 1.0)
-            if animation.kind == "PIXEL" then
-                animation.phase = ((animation.phase or 0) + elapsed * speed * 2) % 1
-                local phase = animation.phase
-                local horizontal = animation.horizontalRepeats or 1
-                local vertical = animation.verticalRepeats or 1
-                pcall(animation.top.SetTexCoord, animation.top, phase, phase + horizontal, 0, 1)
-                pcall(animation.bottom.SetTexCoord, animation.bottom, phase + horizontal, phase, 0, 1)
-                pcall(animation.left.SetTexCoord, animation.left, 0, 1, phase + vertical, phase)
-                pcall(animation.right.SetTexCoord, animation.right, 0, 1, phase, phase + vertical)
-            elseif animation.kind == "PULSE" then
-                animation.elapsed = (animation.elapsed or 0) + elapsed
-                local alpha = 0.55 + 0.45 * ((math.sin(animation.elapsed * speed * math.pi * 2) + 1) / 2)
-                for _, texture in ipairs(animation.textures or {}) do
-                    pcall(texture.SetAlpha, texture, alpha)
-                end
-            end
-        end
-    end
 end
 
 function Detector:OnPlayerRegenEnabled()
@@ -381,8 +342,8 @@ end
 
 function Detector:GetSpellAlertTiming()
     local timing = NS.db and NS.db.alerts and NS.db.alerts.spellAlertTiming
-    if timing == "PI_READY" then return "PI_READY" end
-    return "ALWAYS_TRACK"
+    if timing == "ALWAYS_TRACK" then return "ALWAYS_TRACK" end
+    return "PI_READY"
 end
 
 function Detector:ShouldEnableSpellVisuals()
@@ -665,6 +626,7 @@ function Detector:GetSecureVisualConfig(unit)
             "%.4f,%.4f,%.4f,%.4f", color[1], color[2], color[3], color[4]
         )
         signatureParts[#signatureParts + 1] = string.format("%.2f", visual.glowPixelThickness)
+        signatureParts[#signatureParts + 1] = string.format("%.2f", visual.glowSpeed)
         if visual.glowStyle == "PIXEL" then
             signatureParts[#signatureParts + 1] = tostring(visual.glowPixelLines)
         elseif visual.glowStyle == "AUTOCAST" then
@@ -771,14 +733,6 @@ function Detector:SetAuraStateEnabled(state, enabled, soundEnabled)
     if not state then return end
     enabled = enabled and true or false
     soundEnabled = enabled and soundEnabled == true
-    if state.glowAnimation then
-        state.glowAnimation.enabled = enabled
-        if enabled then
-            self.secureGlowAnimations[state.glowAnimation] = true
-        else
-            self.secureGlowAnimations[state.glowAnimation] = nil
-        end
-    end
     if state.enabled == enabled then
         if soundEnabled and NS.db.alerts.sound then
             self:RegisterAuraSounds(state)
@@ -800,10 +754,6 @@ function Detector:SetAuraStateEnabled(state, enabled, soundEnabled)
                 if not ok then
                     state.enabled = false
                     self.pendingAuraRefresh = true
-                    if state.glowAnimation then
-                        state.glowAnimation.enabled = false
-                        self.secureGlowAnimations[state.glowAnimation] = nil
-                    end
                 end
             end
             if state.container.UpdateAllAuras then pcall(state.container.UpdateAllAuras, state.container) end
@@ -838,7 +788,6 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
     if cached then
         cached.guid = UnitGUID(unit)
         cached.auraMap = auraMap
-        if cached.glowAnimation then cached.glowAnimation.speed = visual.glowSpeed end
         self:SetAuraStateEnabled(cached, self:ShouldEnableSpellVisuals(), self:ShouldEnableSpellSounds())
         return cached
     end
@@ -878,15 +827,11 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
             button:SetAllPoints(target)
             button:SetFrameStrata("HIGH")
             button:SetFrameLevel(targetLevel + 15)
-            -- Keep animated regions on our own child. Blizzard seals the aura
-            -- button itself, while the external driver can safely update these
-            -- addon-owned descendant textures without reading aura visibility.
+            -- Build and start the native pulse before Blizzard seals the AuraButton.
+            -- Its parent button still controls whether the glow is visible.
             local visualHost = CreateFrame("Frame", nil, button)
             visualHost:SetAllPoints(button)
-            state.glowAnimation = CreateSecureGlowArt(visualHost, target, visual)
-            if state.glowAnimation then
-                Detector.secureGlowAnimations[state.glowAnimation] = true
-            end
+            CreateSecureGlowArt(visualHost, target, visual)
         end)
     end
 
@@ -945,10 +890,6 @@ function Detector:RetireAuraState(state)
     self:UnregisterAuraSounds(state)
     SafeDisableContainer(state.container)
     state.enabled = false
-    if state.glowAnimation then
-        state.glowAnimation.enabled = false
-        self.secureGlowAnimations[state.glowAnimation] = nil
-    end
     return true
 end
 
@@ -1034,7 +975,6 @@ function Detector:RefreshAuraState(unit)
     local needsRebuild = not state or state.target ~= target
 
     if not needsRebuild then
-        if state.glowAnimation then state.glowAnimation.speed = visual.glowSpeed end
         self:SetAuraStateEnabled(state, self:ShouldEnableSpellVisuals(), self:ShouldEnableSpellSounds())
         return
     end

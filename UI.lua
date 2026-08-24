@@ -1516,16 +1516,16 @@ function UI:BuildAlertsPage()
     local timingLabel = CreateLabel(soundCard, "Spell alerts", 10, C.muted)
     timingLabel:SetPoint("TOPLEFT", 157, -126)
     self.spellAlertTimingDropdown = self:CreateDropdown(soundCard, 130, {
-        { value = "ALWAYS_TRACK", label = "Always track" },
         { value = "PI_READY", label = "PI ready only" },
-    }, function() return NS.db.alerts.spellAlertTiming or "ALWAYS_TRACK" end, function(value)
+        { value = "ALWAYS_TRACK", label = "Always track" },
+    }, function() return NS.db.alerts.spellAlertTiming or "PI_READY" end, function(value)
         NS.db.alerts.spellAlertTiming = value
         if NS.Detector then NS.Detector:OnSettingsChanged() end
         UI:RefreshAlertsPage()
     end)
     self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 157, -144)
 
-    local throttleHelp = CreateLabel(soundCard, "Always track keeps spell visuals active; spell sounds still require PI ready. PI ready only gates spell visuals too.", 10, C.muted)
+    local throttleHelp = CreateLabel(soundCard, "PI ready only hides spell alerts when PI is used. Always track keeps visuals active; spell sounds still require PI ready.", 10, C.muted)
     throttleHelp:SetPoint("TOPLEFT", 16, -184)
     throttleHelp:SetPoint("RIGHT", -16, 0)
     throttleHelp:SetJustifyV("TOP")

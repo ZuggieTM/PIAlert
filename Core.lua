@@ -276,6 +276,13 @@ function NS:InitializeDatabase()
             PIPriorityV2DB.alerts.spellAlertTiming = "ALWAYS_TRACK"
             PIPriorityV2DB.settingsRevision = 7
         end
+        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 8 then
+            -- 1.0.30: PI Ready Only is the safer default. Casting PI now hides
+            -- secure allied-buff visuals instead of tracking them through PI's CD.
+            PIPriorityV2DB.alerts = PIPriorityV2DB.alerts or {}
+            PIPriorityV2DB.alerts.spellAlertTiming = "PI_READY"
+            PIPriorityV2DB.settingsRevision = 8
+        end
     end
     self.db = PIPriorityV2DB
 end
