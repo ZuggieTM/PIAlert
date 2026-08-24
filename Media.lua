@@ -181,12 +181,18 @@ function Media:RegisterAuraSound(unit, spellID, key)
 end
 
 function Media:UnregisterAuraSound(handle)
-    if not handle or not C_UnitAuras or type(C_UnitAuras.RemoveAuraSound) ~= "function" then return end
+    if not handle then return true end
+    if not C_UnitAuras or type(C_UnitAuras.RemoveAuraSound) ~= "function" then return false end
 
     -- Accept the table-shaped handles from 1.0.23 as well as current raw IDs so
     -- a /reload during development cannot strand an old registration.
     local auraSoundID = type(handle) == "table" and handle.id or handle
     if auraSoundID then
-        pcall(C_UnitAuras.RemoveAuraSound, auraSoundID)
+        local ok, err = pcall(C_UnitAuras.RemoveAuraSound, auraSoundID)
+        if not ok then
+            NS:Debug("Aura sound removal failed for ID " .. tostring(auraSoundID) .. ": " .. tostring(err))
+        end
+        return ok
     end
+    return true
 end

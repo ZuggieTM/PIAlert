@@ -135,8 +135,8 @@ NS.DEFAULTS = {
         soundKey = "builtin:Blizzard - Raid Warning",
         soundCooldown = 2,
 
-        -- Whisper alerts use the animated renderer. Secure allied spell alerts
-        -- use a static restricted representation of the chosen style.
+        -- Whisper alerts use AnimationGroups. Secure allied spell alerts use an
+        -- unrestricted external driver for their restricted visual textures.
         glowStyle = "PIXEL", -- PIXEL, AUTOCAST, BUTTON
         glowColorMode = "CUSTOM", -- CUSTOM, CLASS
         glowColor = { 1.00, 0.82, 0.20, 1.00 },

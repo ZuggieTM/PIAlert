@@ -1437,7 +1437,7 @@ function UI:BuildAlertsPage()
 
     local gtitle = CreateLabel(glowCard, "Raidframe glow", 14, C.text)
     gtitle:SetPoint("TOPLEFT", 16, -14)
-    local gdesc = CreateLabel(glowCard, "Whispers animate; secure spell alerts use a static version of the selected style and color.", 10, C.muted)
+    local gdesc = CreateLabel(glowCard, "Whisper and secure spell alerts animate using the selected style and color.", 10, C.muted)
     gdesc:SetPoint("TOPLEFT", gtitle, "BOTTOMLEFT", 0, -4)
 
 

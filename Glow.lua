@@ -38,8 +38,8 @@ function Glow:Stop(frame)
 end
 
 -- Animated glow engine for ordinary whisper/self-test request frames. Restricted
--- 12.1 aura buttons use a static border because descendant AnimationGroups do
--- not advance when Blizzard disables updates for the secret aura subtree.
+-- 12.1 aura buttons use Detector's external driver because descendant
+-- AnimationGroups do not advance in the secret aura subtree.
 function Glow:StartPixel(frame, width, height, color, cfg)
     if not frame then return false end
 

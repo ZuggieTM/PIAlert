@@ -149,6 +149,18 @@ local function CreateStaticPixelGlow(frame, target, color, thickness, lineCount)
     right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
     right:SetWidth(thickness)
     right:SetTexCoord(0, 1, 0, verticalRepeats)
+
+    return {
+        kind = "PIXEL",
+        top = top,
+        bottom = bottom,
+        left = left,
+        right = right,
+        horizontalRepeats = horizontalRepeats,
+        verticalRepeats = verticalRepeats,
+        phase = 0,
+        enabled = true,
+    }
 end
 
 local function CreateSecureGlowArt(frame, target, visual)
@@ -157,12 +169,13 @@ local function CreateSecureGlowArt(frame, target, visual)
     local thickness = visual.glowPixelThickness or 2
 
     if style == "PIXEL" then
-        CreateStaticPixelGlow(frame, target, color, thickness, visual.glowPixelLines)
-        return
+        local animation = CreateStaticPixelGlow(frame, target, color, thickness, visual.glowPixelLines)
+        animation.speed = visual.glowSpeed or 1
+        return animation
     end
 
     -- AnimationGroups cannot advance below Blizzard's restricted aura button.
-    -- AutoCast therefore gets a broad luminous border and Button a sharp one.
+    -- The external driver pulses a broad AutoCast border or a sharp Button one.
     local border = CreateStaticBorder(frame)
     if style == "AUTOCAST" then
         local scale = Clamp(visual.glowAutoCastScale, 0.5, 3.0, 1.0)
@@ -170,6 +183,17 @@ local function CreateSecureGlowArt(frame, target, visual)
     else
         UpdateStaticBorder(border, color, thickness)
     end
+
+    local textures = {}
+    for _, texture in ipairs(border.outer or {}) do textures[#textures + 1] = texture end
+    for _, texture in ipairs(border.inner or {}) do textures[#textures + 1] = texture end
+    return {
+        kind = "PULSE",
+        textures = textures,
+        speed = visual.glowSpeed or 1,
+        elapsed = 0,
+        enabled = true,
+    }
 end
 
 local function AddPIIcon(frame, size)
@@ -210,6 +234,13 @@ function Detector:Init()
     self.pendingClearAuraStates = false
     self.piCooldownLatched = false
     self.lastPIReady = nil
+    self.secureGlowAnimations = setmetatable({}, { __mode = "k" })
+
+    self.secureGlowDriver = CreateFrame("Frame", nil, UIParent)
+    self.secureGlowDriver:SetScript("OnUpdate", function(_, elapsed)
+        Detector:UpdateSecureGlowAnimations(elapsed)
+    end)
+    self.secureGlowDriver:Show()
 
     self.frame = CreateFrame("Frame")
     self.frame:RegisterEvent("CHAT_MSG_WHISPER")
@@ -236,6 +267,36 @@ function Detector:Init()
     C_Timer.After(0.5, function()
         if NS.db and NS:IsActive() then Detector:RefreshAuraDetectors() end
     end)
+end
+
+function Detector:UpdateSecureGlowAnimations(elapsed)
+    elapsed = tonumber(elapsed) or 0
+    self.secureGlowElapsed = (self.secureGlowElapsed or 0) + elapsed
+    if self.secureGlowElapsed < (1 / 30) then return end
+    elapsed = self.secureGlowElapsed
+    self.secureGlowElapsed = 0
+
+    for animation in pairs(self.secureGlowAnimations or {}) do
+        if animation.enabled then
+            local speed = Clamp(animation.speed, 0.25, 3.0, 1.0)
+            if animation.kind == "PIXEL" then
+                animation.phase = ((animation.phase or 0) + elapsed * speed * 2) % 1
+                local phase = animation.phase
+                local horizontal = animation.horizontalRepeats or 1
+                local vertical = animation.verticalRepeats or 1
+                pcall(animation.top.SetTexCoord, animation.top, phase, phase + horizontal, 0, 1)
+                pcall(animation.bottom.SetTexCoord, animation.bottom, phase + horizontal, phase, 0, 1)
+                pcall(animation.left.SetTexCoord, animation.left, 0, 1, phase + vertical, phase)
+                pcall(animation.right.SetTexCoord, animation.right, 0, 1, phase, phase + vertical)
+            elseif animation.kind == "PULSE" then
+                animation.elapsed = (animation.elapsed or 0) + elapsed
+                local alpha = 0.55 + 0.45 * ((math.sin(animation.elapsed * speed * math.pi * 2) + 1) / 2)
+                for _, texture in ipairs(animation.textures or {}) do
+                    pcall(texture.SetAlpha, texture, alpha)
+                end
+            end
+        end
+    end
 end
 
 function Detector:OnPlayerRegenEnabled()
@@ -574,6 +635,7 @@ function Detector:GetSecureVisualConfig(unit)
         glowPixelLines = math.floor(Clamp(alerts.glowPixelLines, 1, 20, 12) + 0.5),
         glowPixelThickness = Clamp(alerts.glowPixelThickness, 1, 8, 2),
         glowAutoCastScale = Clamp(alerts.glowAutoCastScale, 0.5, 3.0, 1.0),
+        glowSpeed = Clamp(alerts.glowSpeed, 0.25, 3.0, 1.0),
         auraIconSize = math.floor(Clamp(auraIcon.size, 12, 96, 52) + 0.5),
     }
     local signatureParts = {
@@ -615,14 +677,10 @@ end
 function Detector:RegisterAuraSounds(state)
     if not state or not NS.db.alerts.sound then return end
     if not NS.Media or not NS.Media.RegisterAuraSound then return end
-    if IsInCombatLockdown() then
-        self.pendingAuraRefresh = true
-        return
-    end
 
     local soundKey = NS.db.alerts.soundKey
     if state.auraSoundKey ~= soundKey then
-        self:UnregisterAuraSounds(state)
+        if not self:UnregisterAuraSounds(state) then return end
         state.auraSoundKey = soundKey
     end
     if state.auraSoundsRegistered then return end
@@ -643,7 +701,7 @@ function Detector:RegisterAuraSounds(state)
             local auraSoundID = NS.Media:RegisterAuraSound(state.unit, spellID, soundKey)
             if auraSoundID then
                 state.auraSoundIDs[#state.auraSoundIDs + 1] = auraSoundID
-                state.auraSoundSpells[spellID] = true
+                state.auraSoundSpells[spellID] = auraSoundID
                 registered = registered + 1
             end
         end
@@ -651,6 +709,7 @@ function Detector:RegisterAuraSounds(state)
 
     state.auraSoundsRegistered = expected > 0 and registered == expected
     if not state.auraSoundsRegistered then
+        self.pendingAuraRefresh = true
         NS:Debug(string.format(
             "Allied aura sounds only partially registered for %s (%s): %d/%d. Will retry.",
             tostring(UnitName(state.unit) or state.unit), tostring(state.unit), registered, expected
@@ -660,32 +719,56 @@ end
 
 function Detector:UnregisterAuraSounds(state)
     if not state then return end
-    if IsInCombatLockdown() then
-        state.pendingSoundUnregister = true
-        self.pendingAuraRefresh = true
-        return false
-    end
+    local remainingIDs = {}
+    local remainingSpells = {}
+    local allRemoved = true
+
     if NS.Media and NS.Media.UnregisterAuraSound then
-        for _, auraSoundID in ipairs(state.auraSoundIDs or {}) do
-            NS.Media:UnregisterAuraSound(auraSoundID)
+        for spellID, auraSoundID in pairs(state.auraSoundSpells or {}) do
+            if NS.Media:UnregisterAuraSound(auraSoundID) then
+                -- Removed successfully.
+            else
+                allRemoved = false
+                remainingIDs[#remainingIDs + 1] = auraSoundID
+                remainingSpells[spellID] = auraSoundID
+            end
         end
+    elseif next(state.auraSoundSpells or {}) then
+        allRemoved = false
+        remainingIDs = state.auraSoundIDs or {}
+        remainingSpells = state.auraSoundSpells or {}
     end
-    state.auraSoundIDs = {}
-    state.auraSoundSpells = {}
+
+    state.auraSoundIDs = remainingIDs
+    state.auraSoundSpells = remainingSpells
     state.auraSoundsRegistered = false
-    state.auraSoundKey = nil
-    state.pendingSoundUnregister = false
-    return true
+    state.pendingSoundUnregister = not allRemoved
+    if allRemoved then
+        state.auraSoundKey = nil
+    else
+        self.pendingAuraRefresh = true
+    end
+    return allRemoved
 end
 
 function Detector:SetAuraStateEnabled(state, enabled)
     if not state then return end
     enabled = enabled and true or false
+    if state.glowAnimation then
+        state.glowAnimation.enabled = enabled
+        if enabled then
+            self.secureGlowAnimations[state.glowAnimation] = true
+        else
+            self.secureGlowAnimations[state.glowAnimation] = nil
+        end
+    end
     if state.enabled == enabled then
         if enabled then
             if NS.db.alerts.sound and not state.auraSoundsRegistered then
                 self:RegisterAuraSounds(state)
-            elseif not NS.db.alerts.sound and state.auraSoundsRegistered then
+            elseif not NS.db.alerts.sound and (#(state.auraSoundIDs or {}) > 0
+                or next(state.auraSoundSpells or {}))
+            then
                 self:UnregisterAuraSounds(state)
             end
         elseif state.pendingSoundUnregister or #(state.auraSoundIDs or {}) > 0 then
@@ -698,7 +781,17 @@ function Detector:SetAuraStateEnabled(state, enabled)
     if enabled then
         if state.container then
             pcall(state.container.Show, state.container)
-            if state.container.SetEnabled then pcall(state.container.SetEnabled, state.container, true) end
+            if state.container.SetEnabled then
+                local ok = pcall(state.container.SetEnabled, state.container, true)
+                if not ok then
+                    state.enabled = false
+                    self.pendingAuraRefresh = true
+                    if state.glowAnimation then
+                        state.glowAnimation.enabled = false
+                        self.secureGlowAnimations[state.glowAnimation] = nil
+                    end
+                end
+            end
             if state.container.UpdateAllAuras then pcall(state.container.UpdateAllAuras, state.container) end
         end
         self:RegisterAuraSounds(state)
@@ -727,6 +820,7 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
     if cached then
         cached.guid = UnitGUID(unit)
         cached.auraMap = auraMap
+        if cached.glowAnimation then cached.glowAnimation.speed = visual.glowSpeed end
         self:SetAuraStateEnabled(cached, true)
         return cached
     end
@@ -766,7 +860,15 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
             button:SetAllPoints(target)
             button:SetFrameStrata("HIGH")
             button:SetFrameLevel(targetLevel + 15)
-            CreateSecureGlowArt(button, target, visual)
+            -- Keep animated regions on our own child. Blizzard seals the aura
+            -- button itself, while the external driver can safely update these
+            -- addon-owned descendant textures without reading aura visibility.
+            local visualHost = CreateFrame("Frame", nil, button)
+            visualHost:SetAllPoints(button)
+            state.glowAnimation = CreateSecureGlowArt(visualHost, target, visual)
+            if state.glowAnimation then
+                Detector.secureGlowAnimations[state.glowAnimation] = true
+            end
         end)
     end
 
@@ -823,6 +925,10 @@ function Detector:RetireAuraState(state)
     self:UnregisterAuraSounds(state)
     SafeDisableContainer(state.container)
     state.enabled = false
+    if state.glowAnimation then
+        state.glowAnimation.enabled = false
+        self.secureGlowAnimations[state.glowAnimation] = nil
+    end
     return true
 end
 
@@ -908,6 +1014,7 @@ function Detector:RefreshAuraState(unit)
     local needsRebuild = not state or state.target ~= target
 
     if not needsRebuild then
+        if state.glowAnimation then state.glowAnimation.speed = visual.glowSpeed end
         if self:IsPIReady() then
             self:SetAuraStateEnabled(state, true)
         else
@@ -926,10 +1033,11 @@ function Detector:RefreshAuraDetectors()
     if IsInCombatLockdown() then
         self.pendingAuraRefresh = true
         self.lastPIReady = self:IsPIReady()
-        if not self.lastPIReady then
-            for _, state in pairs(self.auraStates or {}) do
-                self:SetAuraStateEnabled(state, false)
-            end
+        -- Existing containers are already structurally complete. SetEnabled is
+        -- safe to attempt in combat and is the only way to restore alerts when
+        -- PI finishes its cooldown during a long encounter.
+        for _, state in pairs(self.auraStates or {}) do
+            self:SetAuraStateEnabled(state, self.lastPIReady)
         end
         return
     end
