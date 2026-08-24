@@ -507,13 +507,32 @@ function Detector:IsSpellTracked(spellID)
     return NS.db.spells and NS.db.spells[tonumber(spellID)] == true
 end
 
-function Detector:OnWhisper(message, sender)
+function Detector:OnWhisper(message, sender, ...)
     if not NS.db or not self:AllowsSource("WHISPER") then return end
     if not self:MatchesWhisper(message) then return end
 
-    local allowed, unit = self:IsRequesterAllowed(nil, sender)
+    -- CHAT_MSG_WHISPER argument 12 is the sender GUID. Ten arguments remain
+    -- after message and sender, so prefer that exact identity over display-name
+    -- parsing and retain the name lookup for compatibility/fallback.
+    local senderGUID = select(10, ...)
+    local groupUnit = NS:FindGroupUnitByGUID(senderGUID)
+    if not groupUnit and not NS:IsSecretValue(senderGUID) and senderGUID ~= nil
+        and type(UnitTokenFromGUID) == "function"
+    then
+        local ok, token = pcall(UnitTokenFromGUID, senderGUID)
+        if ok and not NS:IsSecretValue(token) and NS:IsGroupUnit(token) then
+            groupUnit = token
+        end
+    end
+
+    local allowed, unit = self:IsRequesterAllowed(groupUnit, sender)
     if not allowed then
-        NS:Debug("Whisper matched phrase but requester was not allowed: " .. tostring(sender))
+        local guidText = NS:IsSecretValue(senderGUID) and "<secret>" or tostring(senderGUID)
+        NS:Debug(string.format(
+            "Whisper matched but requester was not allowed: sender=%s, guid=%s, resolved=%s, mode=%s.",
+            tostring(sender), guidText, tostring(groupUnit),
+            tostring(NS.db.requesters and NS.db.requesters.mode)
+        ))
         return
     end
 

@@ -117,6 +117,12 @@ COMMANDS
 /pia clear      Clear all requests
 /pia reset      Reset settings
 
+1.0.32-beta
+-----------
+- Fixed Everyone in Group whisper authorization by resolving the whisper sender
+  from Blizzard's exact sender GUID before falling back to display-name matching.
+- Added native full-name roster comparison for connected/cross-realm players.
+
 1.0.31-beta
 -----------
 - Restored the native secure Pixel Glow ants engine and loaded it before the

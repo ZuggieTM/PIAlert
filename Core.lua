@@ -174,10 +174,14 @@ function NS:ForEachGroupUnit(callback, includePlayer)
 end
 
 function NS:FindGroupUnitByGUID(guid)
-    if not guid then return nil end
+    if self:IsSecretValue(guid) or not guid then return nil end
     local found
     self:ForEachGroupUnit(function(unit)
-        if not found and UnitGUID(unit) == guid then found = unit end
+        if found then return end
+        local unitGUID = UnitGUID(unit)
+        if not self:IsSecretValue(unitGUID) and unitGUID and unitGUID == guid then
+            found = unit
+        end
     end, true)
     return found
 end
@@ -185,11 +189,29 @@ end
 function NS:FindGroupUnitByName(name)
     local normalized = self:NormalizeName(name)
     if not normalized then return nil end
+
+    local nativeName = name
+    if type(Ambiguate) == "function" then
+        local ok, value = pcall(Ambiguate, name, "none")
+        if ok and type(value) == "string" and value ~= "" then nativeName = value end
+    end
+
     local found
     self:ForEachGroupUnit(function(unit)
         if found then return end
+
+        -- Let Blizzard compare the sender's native full-name form first. This
+        -- handles connected-realm and cross-realm names without parsing them.
+        local ok, sameUnit = pcall(UnitIsUnit, unit, nativeName)
+        if ok and not self:IsSecretValue(sameUnit) and sameUnit == true then
+            found = unit
+            return
+        end
+
         local unitName = UnitName(unit)
-        if unitName and self:NormalizeName(unitName) == normalized then
+        if not self:IsSecretValue(unitName) and unitName
+            and self:NormalizeName(unitName) == normalized
+        then
             found = unit
         end
     end, true)
