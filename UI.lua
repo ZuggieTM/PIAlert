@@ -1421,7 +1421,7 @@ function UI:BuildAlertsPage()
     local page = CreateFrame("Frame", nil, self.content)
     page:SetAllPoints()
     self.pages.Alerts = page
-    CreatePageHeading(page, "Alerts", "Pick any combination of visuals and sound. All active alerts clear immediately when you cast Power Infusion.")
+    CreatePageHeading(page, "Alerts", "Pick alert visuals and sound, then choose when tracked spell buffs remain visible.")
 
     self.alertCards = {
         glow = self:CreateAlertCard(page, 0, -62, "Glow on raidframe", "Highlight every active requester.", "glow"),
@@ -1513,8 +1513,20 @@ function UI:BuildAlertsPage()
         function(v) NS.db.alerts.soundCooldown = v end, 0, 10, 130, 1)
     self.soundCooldownCompact:SetPoint("TOPLEFT", 16, -126)
 
-    local throttleHelp = CreateLabel(soundCard, "Whisper/self-test sounds use this cooldown. Spell alerts use Blizzard aura sounds and play once when each tracked buff is added.", 10, C.muted)
-    throttleHelp:SetPoint("TOPLEFT", 16, -188)
+    local timingLabel = CreateLabel(soundCard, "Spell alerts", 10, C.muted)
+    timingLabel:SetPoint("TOPLEFT", 157, -126)
+    self.spellAlertTimingDropdown = self:CreateDropdown(soundCard, 130, {
+        { value = "ALWAYS_TRACK", label = "Always track" },
+        { value = "PI_READY", label = "PI ready only" },
+    }, function() return NS.db.alerts.spellAlertTiming or "ALWAYS_TRACK" end, function(value)
+        NS.db.alerts.spellAlertTiming = value
+        if NS.Detector then NS.Detector:OnSettingsChanged() end
+        UI:RefreshAlertsPage()
+    end)
+    self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 157, -144)
+
+    local throttleHelp = CreateLabel(soundCard, "Always track keeps spell visuals active; spell sounds still require PI ready. PI ready only gates spell visuals too.", 10, C.muted)
+    throttleHelp:SetPoint("TOPLEFT", 16, -184)
     throttleHelp:SetPoint("RIGHT", -16, 0)
     throttleHelp:SetJustifyV("TOP")
     throttleHelp:SetWordWrap(true)
@@ -1678,6 +1690,7 @@ function UI:RefreshAlertsPage()
     for _, card in pairs(self.alertCards) do card:Refresh() end
     if self.soundPicker then self.soundPicker:Refresh() end
     if self.soundCooldownCompact then self.soundCooldownCompact:Refresh() end
+    if self.spellAlertTimingDropdown then self.spellAlertTimingDropdown:Refresh() end
     self:RefreshGlowSettings()
     if self.moveAuraButton then
         local unlocked = NS.FrameAlerts and NS.FrameAlerts.auraUnlocked

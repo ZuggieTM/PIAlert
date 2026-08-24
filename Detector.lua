@@ -313,7 +313,7 @@ function Detector:OnPlayerRegenEnabled()
     self:OnPICooldownChanged(false)
     -- AuraContainer construction and aura-sound registration are restricted.
     -- Coalesce every combat-time request into one clean out-of-combat refresh.
-    if self.pendingAuraRefresh or (self:IsPIReady() and self:AllowsSource("SPELL")) then
+    if self.pendingAuraRefresh or (self:ShouldEnableSpellVisuals() and self:AllowsSource("SPELL")) then
         self.pendingAuraRefresh = false
         self:ScheduleAuraRefresh(0.05)
     end
@@ -377,6 +377,22 @@ function Detector:IsPIReady()
         self.lastPIReady = self:QueryPIReady(false)
     end
     return self.lastPIReady == true
+end
+
+function Detector:GetSpellAlertTiming()
+    local timing = NS.db and NS.db.alerts and NS.db.alerts.spellAlertTiming
+    if timing == "PI_READY" then return "PI_READY" end
+    return "ALWAYS_TRACK"
+end
+
+function Detector:ShouldEnableSpellVisuals()
+    return self:GetSpellAlertTiming() == "ALWAYS_TRACK" or self:IsPIReady()
+end
+
+function Detector:ShouldEnableSpellSounds()
+    -- Aura sounds are registered only while PI is actionable. Registering them
+    -- when PI becomes ready does not replay a buff that was already active.
+    return self:IsPIReady()
 end
 
 function Detector:OnPICooldownChanged(fromCooldownEvent)
@@ -751,9 +767,10 @@ function Detector:UnregisterAuraSounds(state)
     return allRemoved
 end
 
-function Detector:SetAuraStateEnabled(state, enabled)
+function Detector:SetAuraStateEnabled(state, enabled, soundEnabled)
     if not state then return end
     enabled = enabled and true or false
+    soundEnabled = enabled and soundEnabled == true
     if state.glowAnimation then
         state.glowAnimation.enabled = enabled
         if enabled then
@@ -763,15 +780,12 @@ function Detector:SetAuraStateEnabled(state, enabled)
         end
     end
     if state.enabled == enabled then
-        if enabled then
-            if NS.db.alerts.sound and not state.auraSoundsRegistered then
-                self:RegisterAuraSounds(state)
-            elseif not NS.db.alerts.sound and (#(state.auraSoundIDs or {}) > 0
+        if soundEnabled and NS.db.alerts.sound then
+            self:RegisterAuraSounds(state)
+        elseif (not soundEnabled or not NS.db.alerts.sound)
+            and (state.pendingSoundUnregister or #(state.auraSoundIDs or {}) > 0
                 or next(state.auraSoundSpells or {}))
-            then
-                self:UnregisterAuraSounds(state)
-            end
-        elseif state.pendingSoundUnregister or #(state.auraSoundIDs or {}) > 0 then
+        then
             self:UnregisterAuraSounds(state)
         end
         return
@@ -794,7 +808,11 @@ function Detector:SetAuraStateEnabled(state, enabled)
             end
             if state.container.UpdateAllAuras then pcall(state.container.UpdateAllAuras, state.container) end
         end
-        self:RegisterAuraSounds(state)
+        if soundEnabled then
+            self:RegisterAuraSounds(state)
+        else
+            self:UnregisterAuraSounds(state)
+        end
     else
         self:UnregisterAuraSounds(state)
         if state.container then
@@ -821,7 +839,7 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
         cached.guid = UnitGUID(unit)
         cached.auraMap = auraMap
         if cached.glowAnimation then cached.glowAnimation.speed = visual.glowSpeed end
-        self:SetAuraStateEnabled(cached, true)
+        self:SetAuraStateEnabled(cached, self:ShouldEnableSpellVisuals(), self:ShouldEnableSpellSounds())
         return cached
     end
 
@@ -897,7 +915,9 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
     container:SetEnabled(true)
     container:UpdateAllAuras()
     container:Show()
-    self:RegisterAuraSounds(state)
+    if self:ShouldEnableSpellSounds() then
+        self:RegisterAuraSounds(state)
+    end
 
     if not cache then
         cache = {}
@@ -918,7 +938,7 @@ function Detector:RetireAuraState(state)
 
     if IsInCombatLockdown() then
         self.pendingAuraRefresh = true
-        self:SetAuraStateEnabled(state, false)
+        self:SetAuraStateEnabled(state, false, false)
         return false
     end
 
@@ -936,7 +956,7 @@ function Detector:ClearAuraStates()
     if IsInCombatLockdown() then
         self.pendingClearAuraStates = true
         for _, state in pairs(self.auraStates or {}) do
-            self:SetAuraStateEnabled(state, false)
+            self:SetAuraStateEnabled(state, false, false)
         end
         return
     end
@@ -1006,7 +1026,7 @@ function Detector:RefreshAuraState(unit)
     if not target then
         -- Never leave a previously valid token glowing on a frame we can no
         -- longer confirm. A resolver callback will enable it again later.
-        if state then self:SetAuraStateEnabled(state, false) end
+        if state then self:SetAuraStateEnabled(state, false, false) end
         NS:Debug("Secure ally tracker is waiting for a raid/party frame for " .. tostring(UnitName(unit) or unit))
         return
     end
@@ -1015,11 +1035,7 @@ function Detector:RefreshAuraState(unit)
 
     if not needsRebuild then
         if state.glowAnimation then state.glowAnimation.speed = visual.glowSpeed end
-        if self:IsPIReady() then
-            self:SetAuraStateEnabled(state, true)
-        else
-            self:SetAuraStateEnabled(state, false)
-        end
+        self:SetAuraStateEnabled(state, self:ShouldEnableSpellVisuals(), self:ShouldEnableSpellSounds())
         return
     end
 
@@ -1036,8 +1052,10 @@ function Detector:RefreshAuraDetectors()
         -- Existing containers are already structurally complete. SetEnabled is
         -- safe to attempt in combat and is the only way to restore alerts when
         -- PI finishes its cooldown during a long encounter.
+        local visualsEnabled = self:ShouldEnableSpellVisuals()
+        local soundsEnabled = self:ShouldEnableSpellSounds()
         for _, state in pairs(self.auraStates or {}) do
-            self:SetAuraStateEnabled(state, self.lastPIReady)
+            self:SetAuraStateEnabled(state, visualsEnabled, soundsEnabled)
         end
         return
     end
@@ -1049,9 +1067,9 @@ function Detector:RefreshAuraDetectors()
     end
 
     self.lastPIReady = self:IsPIReady()
-    if not self.lastPIReady then
+    if not self:ShouldEnableSpellVisuals() then
         for _, state in pairs(self.auraStates or {}) do
-            self:SetAuraStateEnabled(state, false)
+            self:SetAuraStateEnabled(state, false, false)
         end
         return
     end
@@ -1073,10 +1091,11 @@ function Detector:RefreshAuraDetectors()
 
 end
 
-function Detector:SuppressSecureVisuals()
+function Detector:ApplyPICooldownAlertPolicy()
     self.lastPIReady = false
+    local visualsEnabled = self:ShouldEnableSpellVisuals()
     for _, state in pairs(self.auraStates or {}) do
-        self:SetAuraStateEnabled(state, false)
+        self:SetAuraStateEnabled(state, visualsEnabled, false)
     end
 end
 
@@ -1089,8 +1108,8 @@ function Detector:PrintTrackerStatus()
     local activeTrackers = 0
     for _ in pairs(self.auraStates or {}) do activeTrackers = activeTrackers + 1 end
     NS:Print(string.format(
-        "Spell trackers: %d enabled spell(s), %d active secure tracker(s), PI ready=%s, combat=%s.",
-        enabledSpells, activeTrackers, tostring(self:IsPIReady()), tostring(IsInCombatLockdown())
+        "Spell trackers: %d enabled spell(s), %d active secure tracker(s), timing=%s, PI ready=%s, combat=%s.",
+        enabledSpells, activeTrackers, self:GetSpellAlertTiming(), tostring(self:IsPIReady()), tostring(IsInCombatLockdown())
     ))
 
     for _, configuredName in ipairs((NS.db.requesters and NS.db.requesters.players) or {}) do
@@ -1126,7 +1145,7 @@ function Detector:OnSpellcast(unit, castGUID, spellID, castBarID)
         if publicSpellID == NS.PI_SPELL_ID then
             self.piCooldownLatched = true
             NS.RequestManager:ClearAll("Power Infusion cast")
-            self:SuppressSecureVisuals()
+            self:ApplyPICooldownAlertPolicy()
             return
         end
 

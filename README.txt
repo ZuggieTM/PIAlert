@@ -68,6 +68,14 @@ Each alert type can be enabled independently:
 - Movable Power Infusion aura icon
 - Sound
 
+Spell alert timing has two modes:
+- Always Track (default): tracked allied buffs stay visible regardless of PI's
+  cooldown. Their sound is registered only while PI is ready, so PI becoming
+  ready does not replay the sound for a buff that was already active.
+- PI Ready Only: both visuals and sound are gated by PI readiness. If a tracked
+  buff is already active when PI becomes ready, Blizzard may show its remaining
+  visual, but its activation sound is not replayed.
+
 PI Alert uses its bundled native AnimationGroup renderer for ordinary whisper
 requests. Blizzard-managed allied spell alerts animate their restricted visual
 textures from an unrestricted external driver. Both paths share the selected
@@ -107,6 +115,14 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.29-beta
+-----------
+- Added Always Track and PI Ready Only spell-alert timing modes.
+- Made Always Track the default: allied cooldown visuals stay active while PI is
+  unavailable, while their activation sounds still require PI to be ready.
+- Kept allied aura sounds activation-only; PI becoming ready does not replay an
+  already-active cooldown sound.
 
 1.0.28-beta
 -----------

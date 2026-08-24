@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 6
+NS.SETTINGS_REVISION = 7
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -132,6 +132,7 @@ NS.DEFAULTS = {
         frameIcon = true,
         auraIcon = true,
         sound = true,
+        spellAlertTiming = "ALWAYS_TRACK", -- ALWAYS_TRACK, PI_READY
         soundKey = "builtin:Blizzard - Raid Warning",
         soundCooldown = 2,
 

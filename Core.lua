@@ -269,6 +269,13 @@ function NS:InitializeDatabase()
             end
             PIPriorityV2DB.settingsRevision = 6
         end
+        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 7 then
+            -- 1.0.29: Existing users start in the recommended mode. Secure spell
+            -- visuals stay active while PI is unavailable, but sounds do not.
+            PIPriorityV2DB.alerts = PIPriorityV2DB.alerts or {}
+            PIPriorityV2DB.alerts.spellAlertTiming = "ALWAYS_TRACK"
+            PIPriorityV2DB.settingsRevision = 7
+        end
     end
     self.db = PIPriorityV2DB
 end
