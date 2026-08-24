@@ -97,11 +97,7 @@ local function UpdateStaticBorder(border, color, thickness)
     end
 end
 
-local function CreateStaticPixelGlow(frame, target, color, thickness, lineCount)
-    thickness = math.floor(Clamp(thickness, 1, 8, 2) + 0.5)
-    lineCount = math.floor(Clamp(lineCount, 1, 20, 12) + 0.5)
-    color = color or { 1.00, 0.82, 0.20, 1.00 }
-
+local function GetSecureTargetSize(target)
     local width, height = 100, 40
     if target and type(target.GetSize) == "function" then
         local ok, targetWidth, targetHeight = pcall(target.GetSize, target)
@@ -112,7 +108,15 @@ local function CreateStaticPixelGlow(frame, target, color, thickness, lineCount)
             width, height = targetWidth, targetHeight
         end
     end
+    return width, height
+end
 
+local function CreateStaticPixelGlow(frame, target, color, thickness, lineCount)
+    thickness = math.floor(Clamp(thickness, 1, 8, 2) + 0.5)
+    lineCount = math.floor(Clamp(lineCount, 1, 20, 12) + 0.5)
+    color = color or { 1.00, 0.82, 0.20, 1.00 }
+
+    local width, height = GetSecureTargetSize(target)
     local perimeter = math.max(1, 2 * (width + height))
     local horizontalRepeats = math.max(1, lineCount * width / perimeter)
     local verticalRepeats = math.max(1, lineCount * height / perimeter)
@@ -181,6 +185,22 @@ local function CreateSecureGlowArt(frame, target, visual)
     local thickness = visual.glowPixelThickness or 2
 
     if style == "PIXEL" then
+        local width, height = GetSecureTargetSize(target)
+        if NS.SecureGlow and NS.SecureGlow.StartPixel then
+            local ok, started = pcall(
+                NS.SecureGlow.StartPixel,
+                NS.SecureGlow,
+                frame,
+                width,
+                height,
+                color,
+                visual
+            )
+            if ok and started then return end
+        end
+
+        -- If a client rejects the native Translation animation, retain a visible
+        -- static Pixel border and the proven native alpha pulse as a fallback.
         CreateStaticPixelGlow(frame, target, color, thickness, visual.glowPixelLines)
     else
         local border = CreateStaticBorder(frame)

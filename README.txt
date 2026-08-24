@@ -77,7 +77,7 @@ Spell alert timing has two modes:
   visual, but its activation sound is not replayed.
 
 PI Alert uses native AnimationGroups for ordinary whisper requests. Blizzard-
-managed allied spell alerts start a C-side alpha pulse inside their secure
+managed allied spell alerts start their C-side animation inside the secure
 initialization window. Both paths share the selected style, speed and color
 without reading protected aura state.
 
@@ -87,8 +87,9 @@ Glow styles:
 - Button Glow: speed
 - Custom color or requester class color
 
-Secure Pixel, AutoCast and Button visuals use a native alpha pulse created before
-Blizzard seals the AuraButton. The selected speed and color apply to that pulse.
+Secure Pixel uses native marching-dash "ants" created before Blizzard seals the
+AuraButton. Secure AutoCast and Button visuals use the native alpha pulse. The
+selected speed and color apply to both paths.
 
 Use /pia test to preview the configured alert behavior on your own resolved
 party/raidframe.
@@ -115,6 +116,12 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.31-beta
+-----------
+- Restored the native secure Pixel Glow ants engine and loaded it before the
+  allied cooldown detector.
+- Kept the secure alpha pulse as a fallback if native dash translation is rejected.
 
 1.0.30-beta
 -----------
