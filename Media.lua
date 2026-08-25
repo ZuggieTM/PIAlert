@@ -154,12 +154,29 @@ function Media:GetAuraSoundInfo(key, unit, spellID)
     return info
 end
 
+local function AuraSoundChangesRestricted()
+    if type(_G.InCombatLockdown) == "function" and _G.InCombatLockdown() == true then
+        return true
+    end
+
+    if C_Secrets and type(C_Secrets.ShouldAurasBeSecret) == "function" then
+        local ok, restricted = pcall(C_Secrets.ShouldAurasBeSecret)
+        if ok and restricted == true then return true end
+    end
+
+    return false
+end
+
 function Media:RegisterAuraSound(unit, spellID, key)
     if not C_UnitAuras or type(C_UnitAuras.AddAuraSound) ~= "function" then
         NS:Debug("Blizzard's allied aura sound API is unavailable on this client.")
         return nil
     end
     if type(unit) ~= "string" or not tonumber(spellID) then return nil end
+    if AuraSoundChangesRestricted() then
+        NS:Debug("Deferred allied aura sound registration while aura changes are restricted.")
+        return nil
+    end
 
     local info = self:GetAuraSoundInfo(key, unit, spellID)
     local trigger = 0
@@ -183,6 +200,10 @@ end
 function Media:UnregisterAuraSound(handle)
     if not handle then return true end
     if not C_UnitAuras or type(C_UnitAuras.RemoveAuraSound) ~= "function" then return false end
+    if AuraSoundChangesRestricted() then
+        NS:Debug("Deferred allied aura sound removal while aura changes are restricted.")
+        return false
+    end
 
     -- Accept the table-shaped handles from 1.0.23 as well as current raw IDs so
     -- a /reload during development cannot strand an old registration.

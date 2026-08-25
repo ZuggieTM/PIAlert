@@ -71,11 +71,15 @@ Each alert type can be enabled independently:
 
 Spell alert timing has two modes:
 - Always Track: tracked allied buffs stay visible regardless of PI's
-  cooldown. Their sound is registered only while PI is ready, so PI becoming
-  ready does not replay the sound for a buff that was already active.
-- PI Ready Only (default): both visuals and sound are gated by PI readiness. If a tracked
+  cooldown.
+- PI Ready Only (default): visuals are gated by PI readiness. If a tracked
   buff is already active when PI becomes ready, Blizzard may show its remaining
   visual, but its activation sound is not replayed.
+
+Blizzard does not allow allied aura-sound registrations to be changed during
+restricted combat. A sound armed before combat therefore remains armed for that
+combat so subsequent cooldown activations can still play without a blocked action.
+Outside combat, sound registration follows PI readiness and the sound setting.
 
 PI Alert uses native AnimationGroups for ordinary whisper requests. Blizzard-
 managed allied spell alerts start their C-side animation inside the secure
@@ -117,6 +121,14 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.34-beta
+-----------
+- Kept pre-combat allied aura-sound registrations armed throughout restricted
+  combat so sounds continue after the first PI cooldown cycle.
+- Stopped calling Blizzard's protected aura-sound add/remove APIs in combat,
+  fixing ADDON_ACTION_BLOCKED errors from RegisterAuraSound.
+- Kept PI Ready Only gating on secure raidframe visuals.
 
 1.0.33-beta
 -----------

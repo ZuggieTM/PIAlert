@@ -1525,7 +1525,7 @@ function UI:BuildAlertsPage()
     end)
     self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 157, -144)
 
-    local throttleHelp = CreateLabel(soundCard, "PI ready only hides spell alerts when PI is used. Always track keeps visuals active; spell sounds still require PI ready.", 10, C.muted)
+    local throttleHelp = CreateLabel(soundCard, "PI ready only hides spell visuals when PI is used. Secure spell sounds stay armed for the current combat so they can repeat without a blocked action.", 10, C.muted)
     throttleHelp:SetPoint("TOPLEFT", 16, -184)
     throttleHelp:SetPoint("RIGHT", -16, 0)
     throttleHelp:SetJustifyV("TOP")
