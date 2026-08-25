@@ -67,19 +67,14 @@ Each alert type can be enabled independently:
 - Power Infusion icon on raid/party frame, with a secure swipe showing the
   tracked buff's remaining duration
 - Movable Power Infusion aura icon
-- Sound
+- Sound for accepted whisper requests only
 
 Spell alert timing has two modes:
 - Always Track: tracked allied buffs stay visible regardless of PI's
   cooldown.
 - PI Ready Only (default): visuals are gated by PI readiness. If a tracked
   buff is already active when PI becomes ready, Blizzard may show its remaining
-  visual, but its activation sound is not replayed.
-
-Blizzard does not allow allied aura-sound registrations to be changed during
-restricted combat. A sound armed before combat therefore remains armed for that
-combat so subsequent cooldown activations can still play without a blocked action.
-Outside combat, sound registration follows PI readiness and the sound setting.
+  visual.
 
 PI Alert uses native AnimationGroups for ordinary whisper requests. Blizzard-
 managed allied spell alerts start their C-side animation inside the secure
@@ -100,11 +95,10 @@ Use /pia test to preview the configured alert behavior on your own resolved
 party/raidframe.
 
 The sound picker supports LibSharedMedia-3.0 registrations and is searchable.
-Whisper/self-test sounds are played directly by PI Alert and use the local
-Whisper Sound Cooldown setting. Allied spell sounds are registered with Blizzard's dedicated
-C_UnitAuras.AddAuraSound API with the Added trigger, so Blizzard plays the selected
-sound when the configured tracked buff is added without exposing the protected aura transition to Lua. Those secure aura sounds do not use PI Alert's local sound
-throttle.
+Only accepted whisper requests trigger the selected sound during normal use;
+/pia test also plays it as a preview. Tracked allied buff activations use visual
+alerts only and never play a sound. Whisper sounds use the local Whisper Sound
+Cooldown setting.
 
 FRAME SUPPORT
 -------------
@@ -121,6 +115,15 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.35-beta
+-----------
+- Removed sounds from tracked allied buff activations; spell tracking is now
+  visual-only.
+- Made the sound toggle, picker and cooldown apply only to accepted whisper
+  requests (plus /pia test previews).
+- Removed the protected allied aura-sound registration code and its combat
+  lifecycle restrictions.
 
 1.0.34-beta
 -----------

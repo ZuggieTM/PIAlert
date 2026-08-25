@@ -42,15 +42,6 @@ local function IsInCombatLockdown()
     return type(_G.InCombatLockdown) == "function" and _G.InCombatLockdown() == true
 end
 
-local function AreAuraSoundChangesRestricted()
-    if IsInCombatLockdown() then return true end
-    if C_Secrets and type(C_Secrets.ShouldAurasBeSecret) == "function" then
-        local ok, restricted = pcall(C_Secrets.ShouldAurasBeSecret)
-        if ok and restricted == true then return true end
-    end
-    return false
-end
-
 local function Clamp(value, minValue, maxValue, fallback)
     value = tonumber(value) or fallback or minValue
     if value < minValue then value = minValue end
@@ -321,7 +312,7 @@ function Detector:OnPlayerRegenEnabled()
     end
 
     self:OnPICooldownChanged(false)
-    -- AuraContainer construction and aura-sound registration are restricted.
+    -- AuraContainer construction is restricted.
     -- Coalesce every combat-time request into one clean out-of-combat refresh.
     if self.pendingAuraRefresh or (self:ShouldEnableSpellVisuals() and self:AllowsSource("SPELL")) then
         self.pendingAuraRefresh = false
@@ -397,13 +388,6 @@ end
 
 function Detector:ShouldEnableSpellVisuals()
     return self:GetSpellAlertTiming() == "ALWAYS_TRACK" or self:IsPIReady()
-end
-
-function Detector:ShouldEnableSpellSounds()
-    -- Outside restricted combat, arm sounds only while PI is actionable.
-    -- Registrations already armed at combat start must remain armed until combat
-    -- ends because Blizzard protects both removal and later re-registration.
-    return self:IsPIReady()
 end
 
 function Detector:OnPICooldownChanged(fromCooldownEvent)
@@ -721,104 +705,6 @@ function Detector:AddSecureAuraSlot(container, key, auraMap, initializeFrame)
     return button
 end
 
-function Detector:RegisterAuraSounds(state)
-    if not state or not NS.db.alerts.sound then return end
-    if not NS.Media or not NS.Media.RegisterAuraSound then return end
-    if AreAuraSoundChangesRestricted() then
-        self.pendingAuraRefresh = true
-        return false
-    end
-
-    local soundKey = NS.db.alerts.soundKey
-    if state.auraSoundKey ~= soundKey then
-        if not self:UnregisterAuraSounds(state) then return end
-        state.auraSoundKey = soundKey
-    end
-    if state.auraSoundsRegistered then return end
-
-    state.auraSoundIDs = state.auraSoundIDs or {}
-    state.auraSoundSpells = state.auraSoundSpells or {}
-
-    local expected, registered = 0, 0
-    for spellID in pairs(state.auraMap or {}) do
-        expected = expected + 1
-
-        -- Keep successful registrations and retry only the ones Blizzard did
-        -- not accept. Previously one successful spell made the whole unit look
-        -- registered, permanently hiding failures for its other tracked buffs.
-        if state.auraSoundSpells[spellID] then
-            registered = registered + 1
-        else
-            local auraSoundID = NS.Media:RegisterAuraSound(state.unit, spellID, soundKey)
-            if auraSoundID then
-                state.auraSoundIDs[#state.auraSoundIDs + 1] = auraSoundID
-                state.auraSoundSpells[spellID] = auraSoundID
-                registered = registered + 1
-            end
-        end
-    end
-
-    state.auraSoundsRegistered = expected > 0 and registered == expected
-    if not state.auraSoundsRegistered then
-        self.pendingAuraRefresh = true
-        NS:Debug(string.format(
-            "Allied aura sounds only partially registered for %s (%s): %d/%d. Will retry.",
-            tostring(UnitName(state.unit) or state.unit), tostring(state.unit), registered, expected
-        ))
-    end
-    return state.auraSoundsRegistered
-end
-
-function Detector:UnregisterAuraSounds(state)
-    if not state then return end
-    if AreAuraSoundChangesRestricted() then
-        state.pendingSoundUnregister = true
-        self.pendingAuraRefresh = true
-        return false
-    end
-    local remainingIDs = {}
-    local remainingSpells = {}
-    local allRemoved = true
-
-    if NS.Media and NS.Media.UnregisterAuraSound then
-        for spellID, auraSoundID in pairs(state.auraSoundSpells or {}) do
-            if NS.Media:UnregisterAuraSound(auraSoundID) then
-                -- Removed successfully.
-            else
-                allRemoved = false
-                remainingIDs[#remainingIDs + 1] = auraSoundID
-                remainingSpells[spellID] = auraSoundID
-            end
-        end
-    elseif next(state.auraSoundSpells or {}) then
-        allRemoved = false
-        remainingIDs = state.auraSoundIDs or {}
-        remainingSpells = state.auraSoundSpells or {}
-    end
-
-    state.auraSoundIDs = remainingIDs
-    state.auraSoundSpells = remainingSpells
-    state.auraSoundsRegistered = false
-    state.pendingSoundUnregister = not allRemoved
-    if allRemoved then
-        state.auraSoundKey = nil
-    else
-        self.pendingAuraRefresh = true
-    end
-    return allRemoved
-end
-
-function Detector:SyncAuraSounds(state)
-    if not state then return end
-    if NS.db.alerts.sound and self:ShouldEnableSpellSounds() then
-        self:RegisterAuraSounds(state)
-    elseif state.pendingSoundUnregister or #(state.auraSoundIDs or {}) > 0
-        or next(state.auraSoundSpells or {})
-    then
-        self:UnregisterAuraSounds(state)
-    end
-end
-
 function Detector:SetAuraStateEnabled(state, enabled)
     if not state then return end
     enabled = enabled and true or false
@@ -864,7 +750,6 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
         cached.guid = UnitGUID(unit)
         cached.auraMap = auraMap
         self:SetAuraStateEnabled(cached, self:ShouldEnableSpellVisuals())
-        self:SyncAuraSounds(cached)
         return cached
     end
 
@@ -936,7 +821,6 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
     container:SetEnabled(true)
     container:UpdateAllAuras()
     container:Show()
-    self:SyncAuraSounds(state)
 
     if not cache then
         cache = {}
@@ -961,7 +845,6 @@ function Detector:RetireAuraState(state)
         return false
     end
 
-    self:UnregisterAuraSounds(state)
     SafeDisableContainer(state.container)
     state.enabled = false
     return true
@@ -1050,7 +933,6 @@ function Detector:RefreshAuraState(unit)
 
     if not needsRebuild then
         self:SetAuraStateEnabled(state, self:ShouldEnableSpellVisuals())
-        self:SyncAuraSounds(state)
         return
     end
 
@@ -1073,8 +955,6 @@ function Detector:RefreshAuraDetectors()
         -- PI finishes its cooldown during a long encounter.
         local visualsEnabled = self:ShouldEnableSpellVisuals()
         for _, state in pairs(self.auraStates or {}) do
-            -- Sound registration is protected here. Leave pre-combat
-            -- registrations armed so later cooldown activations can still play.
             self:SetAuraStateEnabled(state, visualsEnabled)
         end
         return
@@ -1090,7 +970,6 @@ function Detector:RefreshAuraDetectors()
     if not self:ShouldEnableSpellVisuals() then
         for _, state in pairs(self.auraStates or {}) do
             self:SetAuraStateEnabled(state, false)
-            self:SyncAuraSounds(state)
         end
     end
 
@@ -1116,11 +995,6 @@ function Detector:ApplyPICooldownAlertPolicy()
     local visualsEnabled = self:ShouldEnableSpellVisuals()
     for _, state in pairs(self.auraStates or {}) do
         self:SetAuraStateEnabled(state, visualsEnabled)
-        -- Removing a sound in restricted combat would make it impossible to
-        -- arm again when PI becomes ready later in the same encounter.
-        if not AreAuraSoundChangesRestricted() then
-            self:SyncAuraSounds(state)
-        end
     end
 end
 

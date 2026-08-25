@@ -491,7 +491,8 @@ function FA:ActivateRequest(request, wasActive)
     self:ApplyRequestVisual(request)
     self:UpdateAuraIcon(NS.RequestManager:GetActiveCount())
 
-    if not wasActive and NS.db.alerts.sound then
+    local playsWhisperSound = request and (request.source == "WHISPER" or request.source == "TEST")
+    if playsWhisperSound and not wasActive and NS.db.alerts.sound then
         local now = GetTime()
         local throttle = tonumber(NS.db.alerts.soundCooldown) or 2
         if now - (self.lastSoundAt or -1000) >= throttle then

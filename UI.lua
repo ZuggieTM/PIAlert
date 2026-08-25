@@ -1283,7 +1283,7 @@ function UI:CreateAlertCard(parent, x, y, titleText, description, key)
         NS.db.alerts[key] = not NS.db.alerts[key]
         self:Refresh()
         if NS.FrameAlerts then NS.FrameAlerts:OnSettingsChanged(false) end
-        if NS.Detector then NS.Detector:OnSettingsChanged() end
+        if key ~= "sound" and NS.Detector then NS.Detector:OnSettingsChanged() end
         UI:RefreshAlertsPage()
     end)
     card:SetScript("OnEnter", function(self) self:SetBackdropColor(0.055, 0.075, 0.095, 1) end)
@@ -1421,13 +1421,13 @@ function UI:BuildAlertsPage()
     local page = CreateFrame("Frame", nil, self.content)
     page:SetAllPoints()
     self.pages.Alerts = page
-    CreatePageHeading(page, "Alerts", "Pick alert visuals and sound, then choose when tracked spell buffs remain visible.")
+    CreatePageHeading(page, "Alerts", "Pick alert visuals and a whisper-request sound, then choose when tracked spell buffs remain visible.")
 
     self.alertCards = {
         glow = self:CreateAlertCard(page, 0, -62, "Glow on raidframe", "Highlight every active requester.", "glow"),
         frameIcon = self:CreateAlertCard(page, 319, -62, "PI icon on raidframe", "Place a PI icon on each requester.", "frameIcon"),
         auraIcon = self:CreateAlertCard(page, 0, -140, "PI aura icon", "Show one movable PI icon while requests are active.", "auraIcon"),
-        sound = self:CreateAlertCard(page, 319, -140, "Play sound", "Play the selected sound for whisper requests and tracked allied buffs.", "sound"),
+        sound = self:CreateAlertCard(page, 319, -140, "Whisper sound", "Play the selected sound only for accepted whisper requests.", "sound"),
     }
 
     -- Glow settings -----------------------------------------------------------
@@ -1498,12 +1498,12 @@ function UI:BuildAlertsPage()
     local soundCard = CreateCard(page, 303, 245)
     soundCard:SetPoint("TOPLEFT", 319, -224)
     self.soundCard = soundCard
-    local stitle = CreateLabel(soundCard, "Sound", 14, C.text)
+    local stitle = CreateLabel(soundCard, "Whisper request sound", 14, C.text)
     stitle:SetPoint("TOPLEFT", 16, -14)
-    local sdesc = CreateLabel(soundCard, "SharedMedia sounds are searchable and previewable.", 10, C.muted)
+    local sdesc = CreateLabel(soundCard, "Only accepted whisper requests trigger sound.", 10, C.muted)
     sdesc:SetPoint("TOPLEFT", stitle, "BOTTOMLEFT", 0, -4)
 
-    local soundLabel = CreateLabel(soundCard, "Selected sound", 10, C.muted)
+    local soundLabel = CreateLabel(soundCard, "Selected whisper sound", 10, C.muted)
     soundLabel:SetPoint("TOPLEFT", 16, -54)
     self.soundPicker = self:CreateSoundPicker(soundCard, 271)
     self.soundPicker:SetPoint("TOPLEFT", 16, -70)
@@ -1525,7 +1525,7 @@ function UI:BuildAlertsPage()
     end)
     self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 157, -144)
 
-    local throttleHelp = CreateLabel(soundCard, "PI ready only hides spell visuals when PI is used. Secure spell sounds stay armed for the current combat so they can repeat without a blocked action.", 10, C.muted)
+    local throttleHelp = CreateLabel(soundCard, "Tracked allied buffs use visual alerts only and never play this sound. PI ready only hides those visuals when PI is used.", 10, C.muted)
     throttleHelp:SetPoint("TOPLEFT", 16, -184)
     throttleHelp:SetPoint("RIGHT", -16, 0)
     throttleHelp:SetJustifyV("TOP")
@@ -1658,7 +1658,6 @@ function UI:ShowSoundPopup(anchor)
                     NS.db.alerts.soundKey = entry.key
                     anchor:Refresh()
                     popup:Hide()
-                    if NS.Detector then NS.Detector:OnSettingsChanged() end
                 end)
                 row.play:SetScript("OnClick", function()
                     if NS.Media then NS.Media:Play(entry.key) end
