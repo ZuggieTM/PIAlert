@@ -1463,11 +1463,15 @@ function UI:BuildAlertsPage()
     self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 16, -424)
 
     local raidHelp = CreateLabel(raidCard, "Alerts triggered by whispers fall back to the PI icon.", 10, C.muted)
-    raidHelp:SetPoint("TOPLEFT", 16, -467)
-    raidHelp:SetPoint("RIGHT", -130, 0)
-    raidHelp:SetHeight(32)
+    raidHelp:SetPoint("TOPLEFT", 16, -462)
+    raidHelp:SetPoint("RIGHT", -16, 0)
+    raidHelp:SetHeight(18)
     raidHelp:SetJustifyV("TOP")
     raidHelp:SetWordWrap(true)
+
+    local macro = CreateButton(raidCard, "Create PI macro", 136, 30, true)
+    macro:SetPoint("BOTTOMLEFT", 16, 14)
+    macro:SetScript("OnClick", function() NS:CreateOrUpdatePIMacro() end)
 
     local test = CreateButton(raidCard, "Test alert", 100, 30, false)
     test:SetPoint("BOTTOMRIGHT", -16, 14)

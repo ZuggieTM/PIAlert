@@ -1,4 +1,4 @@
-PI Alert 1.0.41-beta
+PI Alert 1.0.42-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -110,12 +110,20 @@ popular frame addons including Grid/Grid2, EllesmereUI, Cell, ElvUI and VuhDo.
 COMMANDS
 --------
 /pia            Open/close settings
+/pia mouseover  Create or update the PI Alert mouseover macro in General Macros
+/pia mo         Short alias for /pia mouseover
 /pia test       Show a test request
 /pia status     Print configured-player and secure spell-tracker status
 /pia debug      Toggle debug logging
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.42-beta
+-----------
+- Added a Create PI macro button that creates or updates an account-wide
+  PI Alert mouseover macro under General Macros.
+- Added /pia mo and /pia mouseover as aliases for the same macro action.
 
 1.0.41-beta
 -----------

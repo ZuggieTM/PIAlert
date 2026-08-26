@@ -41,6 +41,47 @@ function NS:Debug(message)
     end
 end
 
+local PI_MACRO_NAME = "PI Alert"
+local PI_MACRO_ICON = 134400 -- INV_Misc_QuestionMark; #showtooltip supplies the live spell icon.
+local PI_MACRO_BODY = "#showtooltip Power Infusion\n/cast [@mouseover,help,exists,nodead] Power Infusion"
+
+function NS:FindGeneralPIMacro()
+    if type(GetNumMacros) ~= "function" or type(GetMacroInfo) ~= "function" then return nil end
+    local generalCount = tonumber((GetNumMacros())) or 0
+    for index = 1, generalCount do
+        local name = GetMacroInfo(index)
+        if name == PI_MACRO_NAME then return index end
+    end
+    return nil
+end
+
+function NS:CreateOrUpdatePIMacro()
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        self:Print("The PI Alert macro cannot be created or updated during combat.")
+        return false
+    end
+    if type(CreateMacro) ~= "function" or type(EditMacro) ~= "function" then
+        self:Print("The macro API is currently unavailable.")
+        return false
+    end
+
+    local existingIndex = self:FindGeneralPIMacro()
+    local ok, macroIndex
+    if existingIndex then
+        ok, macroIndex = pcall(EditMacro, existingIndex, PI_MACRO_NAME, PI_MACRO_ICON, PI_MACRO_BODY)
+    else
+        ok, macroIndex = pcall(CreateMacro, PI_MACRO_NAME, PI_MACRO_ICON, PI_MACRO_BODY, false)
+    end
+
+    if not ok or not macroIndex then
+        self:Print("Could not create the PI Alert macro. Check that General Macros has a free slot.")
+        return false
+    end
+
+    self:Print((existingIndex and "Updated" or "Created") .. " the PI Alert macro under General Macros.")
+    return true
+end
+
 function NS:IsSecretValue(value)
     if type(issecretvalue) == "function" then
         local ok, secret = pcall(issecretvalue, value)
@@ -363,11 +404,13 @@ function NS:RegisterSlashCommands()
         elseif command == "test" then
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to test an alert."); return end
             if NS.RequestManager then NS.RequestManager:TestRequest() end
+        elseif command == "mo" or command == "mouseover" then
+            NS:CreateOrUpdatePIMacro()
         elseif command == "clear" then
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to clear active alerts."); return end
             if NS.RequestManager then NS.RequestManager:ClearAll("slash") end
         else
-            NS:Print("Commands: /pia, /pia test, /pia status, /pia debug, /pia frames, /pia clear, /pia reset")
+            NS:Print("Commands: /pia, /pia mouseover, /pia test, /pia status, /pia debug, /pia frames, /pia clear, /pia reset")
         end
     end
 end
