@@ -1,4 +1,4 @@
-PI Alert 1.0.44-beta
+PI Alert 1.0.45-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -129,6 +129,11 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.45-beta
+-----------
+- Added the friendly-unit condition to Player and Focus macro targets so an
+  invalid hostile target falls through to the mouseover fallback.
 
 1.0.44-beta
 -----------

@@ -86,9 +86,9 @@ function NS:BuildPIMacroBody()
     local target = mode == "PLAYER" and self:GetPIMacroTarget() or nil
     local targetClause = ""
     if target then
-        targetClause = "[@" .. target .. ",exists,nodead]"
+        targetClause = "[@" .. target .. ",help,exists,nodead]"
     elseif mode == "FOCUS" then
-        targetClause = "[@focus,exists,nodead]"
+        targetClause = "[@focus,help,exists,nodead]"
     end
     return "#showtooltip Power Infusion\n/cast " .. targetClause
         .. "[@mouseover,help,exists,nodead] Power Infusion"
