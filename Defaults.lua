@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 9
+NS.SETTINGS_REVISION = 10
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -137,7 +137,6 @@ NS.DEFAULTS = {
         whisperOnPICooldown = false,
         spellAlertTiming = "PI_READY", -- PI_READY, ALWAYS_TRACK
         soundKey = "builtin:Blizzard - Raid Warning",
-        soundCooldown = 2,
 
         -- Whisper alerts and secure allied spell alerts both use native
         -- AnimationGroups; the secure pulse is frozen during AuraButton init.

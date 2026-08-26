@@ -3,6 +3,8 @@ local ADDON_NAME, NS = ...
 local FA = {}
 NS.FrameAlerts = FA
 
+local WHISPER_SOUND_THROTTLE = 3
+
 local function SafeMethod(object, method, ...)
     if not object or type(object[method]) ~= "function" then return nil end
     local ok, value = pcall(object[method], object, ...)
@@ -525,8 +527,7 @@ function FA:ActivateRequest(request, wasActive)
     local playsWhisperSound = request and (request.source == "WHISPER" or request.source == "TEST")
     if playsWhisperSound and not wasActive and NS.db.alerts.sound then
         local now = GetTime()
-        local throttle = tonumber(NS.db.alerts.soundCooldown) or 2
-        if now - (self.lastSoundAt or -1000) >= throttle then
+        if now - (self.lastSoundAt or -1000) >= WHISPER_SOUND_THROTTLE then
             if NS.Media then NS.Media:Play(NS.db.alerts.soundKey) end
             self.lastSoundAt = now
         end

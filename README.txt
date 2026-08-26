@@ -1,4 +1,4 @@
-PI Alert 1.0.38-beta
+PI Alert 1.0.39-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -21,11 +21,11 @@ models because Blizzard keeps allied aura transitions secret to normal addon Lua
 
 WHISPER CONFIGURATION
 ---------------------
-Request Duration applies to whisper requests only. By default matching whispers
-are ignored while Power Infusion is on cooldown. Alerts > Whisper settings can
-allow accepted whispers to trigger visuals and sound during PI's cooldown.
+Alert Duration under Alerts > Whisper settings applies to whisper requests only.
+By default matching whispers are ignored while Power Infusion is on cooldown;
+the same settings card can allow them during PI's cooldown.
 
-- Request Duration: once active, the whisper request remains visible for this
+- Alert Duration: once active, the whisper request remains visible for this
   many seconds, or until PI is cast.
 
 Whisper phrases support Exact and Contains matching. Contains uses word/phrase
@@ -100,8 +100,8 @@ party/raidframe.
 The sound picker supports LibSharedMedia-3.0 registrations and is searchable.
 Only accepted whisper requests trigger the selected sound during normal use;
 /pia test also plays it as a preview. Tracked allied buff activations use visual
-alerts only and never play a sound. Whisper sounds use the local Whisper Sound
-Cooldown setting.
+alerts only and never play a sound. Whisper sounds have a fixed three-second
+anti-spam window.
 
 FRAME SUPPORT
 -------------
@@ -118,6 +118,13 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.39-beta
+-----------
+- Replaced the configurable sound cooldown with a fixed three-second anti-spam
+  window.
+- Moved configurable whisper Alert Duration into the Whisper settings card.
+- Simplified Requests to request-source and accepted-phrase configuration.
 
 1.0.38-beta
 -----------
