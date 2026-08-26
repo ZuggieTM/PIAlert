@@ -311,6 +311,14 @@ function NS:InitializeDatabase()
             -- values for existing users.
             PIPriorityV2DB.settingsRevision = 9
         end
+        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 10 then
+            -- Whisper sounds now use one fixed anti-spam window instead of a
+            -- user-facing throttle setting.
+            if PIPriorityV2DB.alerts then
+                PIPriorityV2DB.alerts.soundCooldown = nil
+            end
+            PIPriorityV2DB.settingsRevision = 10
+        end
     end
     self.db = PIPriorityV2DB
 end

@@ -251,57 +251,6 @@ function UI:CreateDropdown(parent, width, options, getValue, setValue)
     return button
 end
 
-function UI:CreateNumberField(parent, labelText, description, getValue, setValue, minValue, maxValue, width)
-    local container = CreateFrame("Frame", nil, parent)
-    container:SetSize(width or 250, 82)
-
-    local label = CreateLabel(container, labelText, 12, C.text)
-    label:SetPoint("TOPLEFT", 0, 0)
-
-    local desc = CreateLabel(container, description or "", 10, C.muted)
-    desc:SetPoint("TOPLEFT", 0, -18)
-    desc:SetPoint("RIGHT", container, "RIGHT", -2, 0)
-    desc:SetHeight(24)
-    desc:SetJustifyV("TOP")
-    desc:SetWordWrap(true)
-
-    local box = CreateEditBox(container, 82, 30, "")
-    box:SetPoint("TOPLEFT", 0, -48)
-    box:SetJustifyH("CENTER")
-    container.box = box
-
-    local suffix = CreateLabel(container, "seconds", 11, C.muted)
-    suffix:SetPoint("LEFT", box, "RIGHT", 8, 0)
-
-    local function commit()
-        local value = tonumber(box:GetText()) or getValue() or minValue
-        value = math.max(minValue, math.min(maxValue, value))
-        value = math.floor(value * 10 + 0.5) / 10
-        setValue(value)
-        box:SetText(tostring(value):gsub("%.0$", ""))
-        box:ClearFocus()
-    end
-    box:SetScript("OnEnterPressed", commit)
-    box:SetScript("OnEditFocusLost", function(self)
-        self:SetBackdropBorderColor(unpack(C.border))
-        local value = tonumber(self:GetText())
-        if value then
-            value = math.max(minValue, math.min(maxValue, value))
-            value = math.floor(value * 10 + 0.5) / 10
-            setValue(value)
-            self:SetText(tostring(value):gsub("%.0$", ""))
-        else
-            self:SetText(tostring(getValue()))
-        end
-    end)
-
-    function container:Refresh()
-        box:SetText(tostring(getValue()))
-    end
-    container:Refresh()
-    return container
-end
-
 function UI:CreateMainFrame()
     local frame = CreateFrame("Frame", "PIPriorityOptions", UIParent, "BackdropTemplate")
     self.frame = frame
@@ -464,7 +413,7 @@ function UI:BuildRequestsPage()
     local page = CreateFrame("Frame", nil, self.content)
     page:SetAllPoints()
     self.pages.Requests = page
-    CreatePageHeading(page, "Requests", "Choose how players can ask for Power Infusion. Whisper timing and spell-buff tracking are configured separately.")
+    CreatePageHeading(page, "Requests", "Choose how players can ask for Power Infusion and which whisper phrases are accepted.")
 
     local sourceCard = CreateCard(page, 632, 125)
     sourceCard:SetPoint("TOPLEFT", 0, -72)
@@ -492,24 +441,8 @@ function UI:BuildRequestsPage()
     end)
     self.requestModeDropdown:SetPoint("TOPLEFT", 346, -68)
 
-    -- Whisper-only duration. Allied spell alerts are deliberately not routed
-    -- through RequestManager because Blizzard keeps the aura transition secret.
-    local whisperCard = CreateCard(page, 632, 120)
-    whisperCard:SetPoint("TOPLEFT", sourceCard, "BOTTOMLEFT", 0, -14)
-    self.whisperConfigCard = whisperCard
-
-    local wtitle = CreateLabel(whisperCard, "Whisper configuration", 15, C.text)
-    wtitle:SetPoint("TOPLEFT", 16, -14)
-    local wdesc = CreateLabel(whisperCard, "Matching whispers are ignored while Power Infusion is on cooldown.", 10, C.muted)
-    wdesc:SetPoint("TOPLEFT", wtitle, "BOTTOMLEFT", 0, -4)
-
-    self.durationField = self:CreateNumberField(whisperCard, "Request duration", "How long a whisper request stays visible.",
-        function() return NS.db.requests.duration end,
-        function(v) NS.db.requests.duration = v end, 1, 30, 286)
-    self.durationField:SetPoint("TOPLEFT", 16, -56)
-
-    local phraseCard = CreateCard(page, 632, 220)
-    phraseCard:SetPoint("TOPLEFT", whisperCard, "BOTTOMLEFT", 0, -14)
+    local phraseCard = CreateCard(page, 632, 340)
+    phraseCard:SetPoint("TOPLEFT", sourceCard, "BOTTOMLEFT", 0, -14)
     self.phraseCard = phraseCard
 
     local ptitle = CreateLabel(phraseCard, "Whisper phrases", 15, C.text)
@@ -613,11 +546,9 @@ function UI:RefreshRequestsPage()
     local mode = NS.db.requests.mode or "BOTH"
     local whispersEnabled = mode == "BOTH" or mode == "WHISPER"
 
-    if self.whisperConfigCard then self.whisperConfigCard:SetShown(whispersEnabled) end
     if self.phraseCard then self.phraseCard:SetShown(whispersEnabled) end
 
     if whispersEnabled then
-        if self.durationField then self.durationField:Refresh() end
         self:RefreshPhraseRows()
     end
 end
@@ -1571,10 +1502,10 @@ function UI:BuildAlertsPage()
     self.soundPicker = self:CreateSoundPicker(whisperCard, 204)
     self.soundPicker:SetPoint("TOPLEFT", 16, -108)
 
-    self.soundCooldownCompact = self:CreateCompactNumberField(whisperCard, "Sound cooldown",
-        function() return NS.db.alerts.soundCooldown end,
-        function(v) NS.db.alerts.soundCooldown = v end, 0, 10, 90, 1)
-    self.soundCooldownCompact:SetPoint("TOPLEFT", 16, -150)
+    self.whisperDurationField = self:CreateCompactNumberField(whisperCard, "Alert duration (sec)",
+        function() return NS.db.requests.duration end,
+        function(v) NS.db.requests.duration = v end, 1, 30, 112, 0)
+    self.whisperDurationField:SetPoint("TOPLEFT", 16, -150)
 
     self.alertControls.whisperOnPICooldown = CreateCheckbox(whisperCard, "Alert during PI cooldown",
         function() return NS.db.alerts.whisperOnPICooldown == true end,
@@ -1723,7 +1654,7 @@ function UI:RefreshAlertsPage()
     if not self.alertControls then return end
     for _, control in pairs(self.alertControls) do control:Refresh() end
     if self.soundPicker then self.soundPicker:Refresh() end
-    if self.soundCooldownCompact then self.soundCooldownCompact:Refresh() end
+    if self.whisperDurationField then self.whisperDurationField:Refresh() end
     if self.spellAlertTimingDropdown then self.spellAlertTimingDropdown:Refresh() end
     if self.frameIconTypeDropdown then self.frameIconTypeDropdown:Refresh() end
     if self.auraIconSizeField then self.auraIconSizeField:Refresh() end
