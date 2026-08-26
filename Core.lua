@@ -43,7 +43,43 @@ end
 
 local PI_MACRO_NAME = "PI Alert"
 local PI_MACRO_ICON = 134400 -- INV_Misc_QuestionMark; #showtooltip supplies the live spell icon.
-local PI_MACRO_BODY = "#showtooltip Power Infusion\n/cast [@mouseover,help,exists,nodead] Power Infusion"
+
+local function NormalizeMacroTarget(target)
+    if type(target) ~= "string" then return nil end
+    target = strtrim(target)
+    if target == "" or #target > 80 or target:find("[%[%],/%s]") then return nil end
+    return target
+end
+
+function NS:GetUnitMacroTarget(unit)
+    if not unit or not UnitExists(unit) or not UnitIsPlayer(unit) then return nil end
+    local name, realm
+    if type(UnitFullName) == "function" then
+        name, realm = UnitFullName(unit)
+    else
+        name, realm = UnitName(unit)
+    end
+    if not name or name == "" then return nil end
+    if realm and realm ~= "" then name = name .. "-" .. realm end
+    return NormalizeMacroTarget(name)
+end
+
+function NS:GetPIMacroTarget()
+    return NormalizeMacroTarget(self.db and self.db.macro and self.db.macro.target)
+end
+
+function NS:IsPIMacroTarget(target)
+    local current = self:GetPIMacroTarget()
+    target = NormalizeMacroTarget(target)
+    return current and target and current:lower() == target:lower() or false
+end
+
+function NS:BuildPIMacroBody()
+    local target = self:GetPIMacroTarget()
+    local targetClause = target and ("[@" .. target .. ",exists,nodead]") or ""
+    return "#showtooltip Power Infusion\n/cast " .. targetClause
+        .. "[@mouseover,help,exists,nodead] Power Infusion"
+end
 
 function NS:FindGeneralPIMacro()
     if type(GetNumMacros) ~= "function" or type(GetMacroInfo) ~= "function" then return nil end
@@ -68,9 +104,9 @@ function NS:CreateOrUpdatePIMacro()
     local existingIndex = self:FindGeneralPIMacro()
     local ok, macroIndex
     if existingIndex then
-        ok, macroIndex = pcall(EditMacro, existingIndex, PI_MACRO_NAME, PI_MACRO_ICON, PI_MACRO_BODY)
+        ok, macroIndex = pcall(EditMacro, existingIndex, PI_MACRO_NAME, PI_MACRO_ICON, self:BuildPIMacroBody())
     else
-        ok, macroIndex = pcall(CreateMacro, PI_MACRO_NAME, PI_MACRO_ICON, PI_MACRO_BODY, false)
+        ok, macroIndex = pcall(CreateMacro, PI_MACRO_NAME, PI_MACRO_ICON, self:BuildPIMacroBody(), false)
     end
 
     if not ok or not macroIndex then
@@ -80,6 +116,20 @@ function NS:CreateOrUpdatePIMacro()
 
     self:Print((existingIndex and "Updated" or "Created") .. " the PI Alert macro under General Macros.")
     return true
+end
+
+function NS:SetPIMacroTarget(target)
+    if not self.db then return false end
+    self.db.macro = self.db.macro or {}
+    local normalized = NormalizeMacroTarget(target)
+    self.db.macro.target = normalized or ""
+
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        local action = normalized and ("set to " .. normalized) or "cleared"
+        self:Print("PI macro target " .. action .. ". Run /pia mo after combat to update the macro.")
+        return false
+    end
+    return self:CreateOrUpdatePIMacro()
 end
 
 function NS:IsSecretValue(value)
@@ -359,6 +409,11 @@ function NS:InitializeDatabase()
                 PIPriorityV2DB.alerts.soundCooldown = nil
             end
             PIPriorityV2DB.settingsRevision = 10
+        end
+        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 11 then
+            -- Store the optional account-wide PI macro target. MergeDefaults
+            -- supplies an empty target for existing installations.
+            PIPriorityV2DB.settingsRevision = 11
         end
     end
     self.db = PIPriorityV2DB

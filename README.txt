@@ -1,4 +1,4 @@
-PI Alert 1.0.42-beta
+PI Alert 1.0.43-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -118,6 +118,13 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.43-beta
+-----------
+- Added a right-click PI Alert macro target option beneath the Specific Players
+  requester toggle.
+- Named macro targets are saved and placed before the mouseover fallback; toggling
+  the selected target off returns the macro to mouseover-only behavior.
 
 1.0.42-beta
 -----------
@@ -293,4 +300,4 @@ COMMANDS
 
 Right-click group members
 -------------------------
-While PI Alert is active, right-click a party/raid member and toggle "PI Alert requester" to add or remove them from the Specific Players list.
+While PI Alert is active, right-click a party/raid member and toggle "PI Alert requester" to add or remove them from the Specific Players list. The option directly below it sets that player as the named target in the General PI Alert macro while retaining mouseover as the fallback.

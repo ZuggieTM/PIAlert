@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 10
+NS.SETTINGS_REVISION = 11
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -122,6 +122,10 @@ NS.DEFAULTS = {
         mode = "EVERYONE", -- EVERYONE, FOCUS, SPECIFIC
         fallback = "NONE", -- NONE, FOCUS, EVERYONE; used only when SPECIFIC has no listed players present
         players = {},
+    },
+
+    macro = {
+        target = "",
     },
 
     spells = enabledSpells,
