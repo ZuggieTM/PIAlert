@@ -136,7 +136,7 @@ COMMANDS
 - Completed the internal PI Alert rename across the addon folder, TOC, saved
   database, frame names, media paths and test identifiers.
 - Removed two obsolete Lua files that were no longer loaded by the addon.
-- This pre-release database rename intentionally starts with fresh settings.
+- Renamed the saved database to PIAlertDB as part of the completed addon rename.
 
 1.0.46-beta
 -----------
