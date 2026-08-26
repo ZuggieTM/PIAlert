@@ -215,7 +215,7 @@ local function CreateSecureGlowArt(frame, target, visual)
     StartSecurePulse(frame, visual.glowSpeed)
 end
 
-local function AddPIIcon(frame, size, showDurationSwipe)
+local function AddRaidframeIcon(frame, size, showDurationSwipe, iconType)
     size = math.floor(Clamp(size, 12, 96, 22) + 0.5)
     frame:SetSize(size, size)
 
@@ -226,7 +226,15 @@ local function AddPIIcon(frame, size, showDurationSwipe)
     local icon = frame:CreateTexture(nil, "ARTWORK")
     icon:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, -2)
     icon:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
-    icon:SetTexture(NS:GetSpellIcon(NS.PI_SPELL_ID))
+    local usesAuraIcon = iconType == "SPELL" and type(frame.SetIcon) == "function"
+    if usesAuraIcon then
+        local ok = pcall(frame.SetIcon, frame, icon)
+        if not ok then
+            icon:SetTexture(NS:GetSpellIcon(NS.PI_SPELL_ID))
+        end
+    else
+        icon:SetTexture(NS:GetSpellIcon(NS.PI_SPELL_ID))
+    end
 
     if showDurationSwipe and frame.SetDurationCooldown then
         local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
@@ -659,6 +667,8 @@ function Detector:GetSecureVisualConfig(unit)
     local visual = {
         glow = alerts.glow == true,
         frameIcon = alerts.frameIcon == true,
+        frameIconType = alerts.frameIconType == "SPELL" and "SPELL" or "PI",
+        frameIconCooldownSwipe = alerts.frameIconCooldownSwipe ~= false,
         auraIcon = alerts.auraIcon == true,
         glowStyle = alerts.glowStyle or "PIXEL",
         glowColor = color,
@@ -685,6 +695,10 @@ function Detector:GetSecureVisualConfig(unit)
         elseif visual.glowStyle == "AUTOCAST" then
             signatureParts[#signatureParts + 1] = string.format("%.2f", visual.glowAutoCastScale)
         end
+    end
+    if visual.frameIcon then
+        signatureParts[#signatureParts + 1] = visual.frameIconType
+        signatureParts[#signatureParts + 1] = visual.frameIconCooldownSwipe and "1" or "0"
     end
     if visual.auraIcon then
         signatureParts[#signatureParts + 1] = tostring(visual.auraIconSize)
@@ -802,7 +816,7 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
             button:SetPoint("CENTER", target, "CENTER", 0, 0)
             button:SetFrameStrata("HIGH")
             button:SetFrameLevel(1001)
-            AddPIIcon(button, 22, true)
+            AddRaidframeIcon(button, 22, visual.frameIconCooldownSwipe, visual.frameIconType)
         end)
     end
 
@@ -813,7 +827,7 @@ function Detector:CreateSecureAuraState(unit, classToken, target, auraMap, visua
             button:SetPoint("CENTER", auraAnchor, "CENTER", 0, 0)
             button:SetFrameStrata("HIGH")
             button:SetFrameLevel(1002)
-            AddPIIcon(button, visual.auraIconSize, false)
+            AddRaidframeIcon(button, visual.auraIconSize, false, "PI")
         end)
     end
 

@@ -1249,49 +1249,6 @@ end
 -- Alerts page
 -- -----------------------------------------------------------------------------
 
-function UI:CreateAlertCard(parent, x, y, titleText, description, key)
-    local card = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    card:SetSize(303, 70)
-    card:SetPoint("TOPLEFT", x, y)
-    SetBackdrop(card, C.panel, C.borderSoft)
-
-    local box = CreateFrame("Frame", nil, card, "BackdropTemplate")
-    box:SetSize(21, 21)
-    box:SetPoint("TOPLEFT", 14, -14)
-    SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
-    local check = box:CreateTexture(nil, "OVERLAY")
-    check:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
-    check:SetSize(10, 10)
-    check:SetPoint("CENTER")
-
-    local title = CreateLabel(card, titleText, 13, C.text)
-    title:SetPoint("TOPLEFT", box, "TOPRIGHT", 10, 1)
-    local desc = CreateLabel(card, description, 10, C.muted)
-    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -5)
-    desc:SetPoint("RIGHT", -12, 0)
-    desc:SetJustifyV("TOP")
-    desc:SetWordWrap(true)
-
-    function card:Refresh()
-        local enabled = NS.db.alerts[key] == true
-        check:SetShown(enabled)
-        box:SetBackdropBorderColor(unpack(enabled and C.accentDim or C.border))
-        card:SetBackdropBorderColor(unpack(enabled and C.accentDim or C.borderSoft))
-    end
-
-    card:SetScript("OnClick", function(self)
-        NS.db.alerts[key] = not NS.db.alerts[key]
-        self:Refresh()
-        if NS.FrameAlerts then NS.FrameAlerts:OnSettingsChanged(false) end
-        if key ~= "sound" and NS.Detector then NS.Detector:OnSettingsChanged() end
-        UI:RefreshAlertsPage()
-    end)
-    card:SetScript("OnEnter", function(self) self:SetBackdropColor(0.055, 0.075, 0.095, 1) end)
-    card:SetScript("OnLeave", function(self) self:SetBackdropColor(unpack(C.panel)) end)
-    card:Refresh()
-    return card
-end
-
 function UI:ScheduleGlowRefresh()
     self.glowRefreshSerial = (self.glowRefreshSerial or 0) + 1
     local serial = self.glowRefreshSerial
@@ -1421,29 +1378,36 @@ function UI:BuildAlertsPage()
     local page = CreateFrame("Frame", nil, self.content)
     page:SetAllPoints()
     self.pages.Alerts = page
-    CreatePageHeading(page, "Alerts", "Pick alert visuals and a whisper-request sound, then choose when tracked spell buffs remain visible.")
+    CreatePageHeading(page, "Alerts", "Configure raidframes, the movable aura icon, and whisper-only sound behavior.")
 
-    self.alertCards = {
-        glow = self:CreateAlertCard(page, 0, -62, "Glow on raidframe", "Highlight every active requester.", "glow"),
-        frameIcon = self:CreateAlertCard(page, 319, -62, "PI icon on raidframe", "Place a PI icon on each requester.", "frameIcon"),
-        auraIcon = self:CreateAlertCard(page, 0, -140, "PI aura icon", "Show one movable PI icon while requests are active.", "auraIcon"),
-        sound = self:CreateAlertCard(page, 319, -140, "Whisper sound", "Play the selected sound only for accepted whisper requests.", "sound"),
-    }
+    self.alertControls = {}
 
-    -- Glow settings -----------------------------------------------------------
-    local glowCard = CreateCard(page, 303, 245)
-    glowCard:SetPoint("TOPLEFT", 0, -224)
-    self.glowCard = glowCard
+    local function setVisualOption(key, value, refreshDetector)
+        NS.db.alerts[key] = value and true or false
+        if NS.FrameAlerts then NS.FrameAlerts:OnSettingsChanged(false) end
+        if refreshDetector and NS.Detector then NS.Detector:OnSettingsChanged() end
+        UI:RefreshAlertsPage()
+    end
 
-    local gtitle = CreateLabel(glowCard, "Raidframe glow", 14, C.text)
-    gtitle:SetPoint("TOPLEFT", 16, -14)
-    local gdesc = CreateLabel(glowCard, "Whisper and secure spell alerts animate using the selected style and color.", 10, C.muted)
-    gdesc:SetPoint("TOPLEFT", gtitle, "BOTTOMLEFT", 0, -4)
+    -- Raidframe settings ------------------------------------------------------
+    local raidCard = CreateCard(page, 382, 526)
+    raidCard:SetPoint("TOPLEFT", 0, -62)
+    self.raidframeSettingsCard = raidCard
 
+    local raidTitle = CreateLabel(raidCard, "Raidframe settings", 15, C.text)
+    raidTitle:SetPoint("TOPLEFT", 16, -14)
+    local raidDesc = CreateLabel(raidCard, "Glow and centered icon options for accepted requests.", 10, C.muted)
+    raidDesc:SetPoint("TOPLEFT", raidTitle, "BOTTOMLEFT", 0, -4)
 
-    local styleLabel = CreateLabel(glowCard, "Style", 10, C.muted)
-    styleLabel:SetPoint("TOPLEFT", 16, -54)
-    self.glowStyleDropdown = self:CreateDropdown(glowCard, 271, {
+    self.alertControls.glow = CreateCheckbox(raidCard, "Enable glow on raidframes",
+        function() return NS.db.alerts.glow end,
+        function(value) setVisualOption("glow", value, true) end)
+    self.alertControls.glow:SetPoint("TOPLEFT", 16, -50)
+    self.alertControls.glow:SetPoint("RIGHT", -16, 0)
+
+    local styleLabel = CreateLabel(raidCard, "Glow style", 10, C.muted)
+    styleLabel:SetPoint("TOPLEFT", 16, -88)
+    self.glowStyleDropdown = self:CreateDropdown(raidCard, 350, {
         { value = "PIXEL", label = "Pixel Glow" },
         { value = "AUTOCAST", label = "AutoCast Glow" },
         { value = "BUTTON", label = "Button Glow" },
@@ -1452,11 +1416,11 @@ function UI:BuildAlertsPage()
         UI:ScheduleGlowRefresh()
         UI:RefreshGlowSettings()
     end)
-    self.glowStyleDropdown:SetPoint("TOPLEFT", 16, -70)
+    self.glowStyleDropdown:SetPoint("TOPLEFT", 16, -104)
 
-    local colorLabel = CreateLabel(glowCard, "Color", 10, C.muted)
-    colorLabel:SetPoint("TOPLEFT", 16, -110)
-    self.glowColorModeDropdown = self:CreateDropdown(glowCard, 205, {
+    local colorLabel = CreateLabel(raidCard, "Color", 10, C.muted)
+    colorLabel:SetPoint("TOPLEFT", 16, -148)
+    self.glowColorModeDropdown = self:CreateDropdown(raidCard, 280, {
         { value = "CUSTOM", label = "Custom color" },
         { value = "CLASS", label = "Requester class color" },
     }, function() return NS.db.alerts.glowColorMode end, function(value)
@@ -1464,58 +1428,65 @@ function UI:BuildAlertsPage()
         UI:ScheduleGlowRefresh()
         UI:RefreshGlowSettings()
     end)
-    self.glowColorModeDropdown:SetPoint("TOPLEFT", 16, -126)
+    self.glowColorModeDropdown:SetPoint("TOPLEFT", 16, -164)
 
-    self.glowColorSwatch = self:CreateGlowColorSwatch(glowCard)
-    self.glowColorSwatch:SetPoint("TOPLEFT", 229, -126)
+    self.glowColorSwatch = self:CreateGlowColorSwatch(raidCard)
+    self.glowColorSwatch:SetSize(62, 34)
+    self.glowColorSwatch:SetPoint("TOPLEFT", 304, -164)
 
     local function glowSetter(key, value)
         NS.db.alerts[key] = value
         UI:ScheduleGlowRefresh()
     end
 
-    self.glowSpeedField = self:CreateCompactNumberField(glowCard, "Speed (x)",
+    self.glowSpeedField = self:CreateCompactNumberField(raidCard, "Speed (x)",
         function() return NS.db.alerts.glowSpeed end,
-        function(v) glowSetter("glowSpeed", v) end, 0.25, 3, 83, 2)
-    self.glowSpeedField:SetPoint("TOPLEFT", 16, -174)
+        function(v) glowSetter("glowSpeed", v) end, 0.25, 3, 96, 2)
+    self.glowSpeedField:SetPoint("TOPLEFT", 16, -211)
 
-    self.glowPixelLinesField = self:CreateCompactNumberField(glowCard, "Lines",
+    self.glowPixelLinesField = self:CreateCompactNumberField(raidCard, "Lines",
         function() return NS.db.alerts.glowPixelLines end,
-        function(v) glowSetter("glowPixelLines", v) end, 1, 20, 83, 0)
-    self.glowPixelLinesField:SetPoint("TOPLEFT", 110, -174)
+        function(v) glowSetter("glowPixelLines", v) end, 1, 20, 96, 0)
+    self.glowPixelLinesField:SetPoint("TOPLEFT", 126, -211)
 
-    self.glowPixelThicknessField = self:CreateCompactNumberField(glowCard, "Thickness",
+    self.glowPixelThicknessField = self:CreateCompactNumberField(raidCard, "Thickness",
         function() return NS.db.alerts.glowPixelThickness end,
-        function(v) glowSetter("glowPixelThickness", v) end, 1, 8, 83, 1)
-    self.glowPixelThicknessField:SetPoint("TOPLEFT", 204, -174)
+        function(v) glowSetter("glowPixelThickness", v) end, 1, 8, 96, 1)
+    self.glowPixelThicknessField:SetPoint("TOPLEFT", 236, -211)
 
-    self.glowAutoScaleField = self:CreateCompactNumberField(glowCard, "Scale",
+    self.glowAutoScaleField = self:CreateCompactNumberField(raidCard, "Scale",
         function() return NS.db.alerts.glowAutoCastScale end,
-        function(v) glowSetter("glowAutoCastScale", v) end, 0.5, 3, 83, 1)
-    self.glowAutoScaleField:SetPoint("TOPLEFT", 204, -174)
+        function(v) glowSetter("glowAutoCastScale", v) end, 0.5, 3, 96, 1)
+    self.glowAutoScaleField:SetPoint("TOPLEFT", 126, -211)
 
-    -- Sound settings ----------------------------------------------------------
-    local soundCard = CreateCard(page, 303, 245)
-    soundCard:SetPoint("TOPLEFT", 319, -224)
-    self.soundCard = soundCard
-    local stitle = CreateLabel(soundCard, "Whisper request sound", 14, C.text)
-    stitle:SetPoint("TOPLEFT", 16, -14)
-    local sdesc = CreateLabel(soundCard, "Only accepted whisper requests trigger sound.", 10, C.muted)
-    sdesc:SetPoint("TOPLEFT", stitle, "BOTTOMLEFT", 0, -4)
+    self.alertControls.frameIcon = CreateCheckbox(raidCard, "Show an icon on raidframes",
+        function() return NS.db.alerts.frameIcon end,
+        function(value) setVisualOption("frameIcon", value, true) end)
+    self.alertControls.frameIcon:SetPoint("TOPLEFT", 16, -272)
+    self.alertControls.frameIcon:SetPoint("RIGHT", -16, 0)
 
-    local soundLabel = CreateLabel(soundCard, "Selected whisper sound", 10, C.muted)
-    soundLabel:SetPoint("TOPLEFT", 16, -54)
-    self.soundPicker = self:CreateSoundPicker(soundCard, 271)
-    self.soundPicker:SetPoint("TOPLEFT", 16, -70)
+    self.alertControls.frameIconCooldownSwipe = CreateCheckbox(raidCard, "Show icon cooldown swipe",
+        function() return NS.db.alerts.frameIconCooldownSwipe ~= false end,
+        function(value) setVisualOption("frameIconCooldownSwipe", value, true) end)
+    self.alertControls.frameIconCooldownSwipe:SetPoint("TOPLEFT", 16, -310)
+    self.alertControls.frameIconCooldownSwipe:SetPoint("RIGHT", -16, 0)
 
-    self.soundCooldownCompact = self:CreateCompactNumberField(soundCard, "Whisper sound cooldown",
-        function() return NS.db.alerts.soundCooldown end,
-        function(v) NS.db.alerts.soundCooldown = v end, 0, 10, 130, 1)
-    self.soundCooldownCompact:SetPoint("TOPLEFT", 16, -126)
+    local frameIconTypeLabel = CreateLabel(raidCard, "Raidframe icon", 10, C.muted)
+    frameIconTypeLabel:SetPoint("TOPLEFT", 16, -348)
+    self.frameIconTypeDropdown = self:CreateDropdown(raidCard, 350, {
+        { value = "PI", label = "Power Infusion icon" },
+        { value = "SPELL", label = "Requester's tracked spell icon" },
+    }, function() return NS.db.alerts.frameIconType or "PI" end, function(value)
+        NS.db.alerts.frameIconType = value
+        if NS.FrameAlerts then NS.FrameAlerts:OnSettingsChanged(false) end
+        if NS.Detector then NS.Detector:OnSettingsChanged() end
+        UI:RefreshAlertsPage()
+    end)
+    self.frameIconTypeDropdown:SetPoint("TOPLEFT", 16, -364)
 
-    local timingLabel = CreateLabel(soundCard, "Spell alerts", 10, C.muted)
-    timingLabel:SetPoint("TOPLEFT", 157, -126)
-    self.spellAlertTimingDropdown = self:CreateDropdown(soundCard, 130, {
+    local timingLabel = CreateLabel(raidCard, "Tracked spell alerts", 10, C.muted)
+    timingLabel:SetPoint("TOPLEFT", 16, -408)
+    self.spellAlertTimingDropdown = self:CreateDropdown(raidCard, 350, {
         { value = "PI_READY", label = "PI ready only" },
         { value = "ALWAYS_TRACK", label = "Always track" },
     }, function() return NS.db.alerts.spellAlertTiming or "PI_READY" end, function(value)
@@ -1523,36 +1494,100 @@ function UI:BuildAlertsPage()
         if NS.Detector then NS.Detector:OnSettingsChanged() end
         UI:RefreshAlertsPage()
     end)
-    self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 157, -144)
+    self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 16, -424)
 
-    local throttleHelp = CreateLabel(soundCard, "Tracked allied buffs use visual alerts only and never play this sound. PI ready only hides those visuals when PI is used.", 10, C.muted)
-    throttleHelp:SetPoint("TOPLEFT", 16, -184)
-    throttleHelp:SetPoint("RIGHT", -16, 0)
-    throttleHelp:SetJustifyV("TOP")
-    throttleHelp:SetWordWrap(true)
+    local raidHelp = CreateLabel(raidCard, "Alerts triggered by whispers fall back to the PI icon.", 10, C.muted)
+    raidHelp:SetPoint("TOPLEFT", 16, -467)
+    raidHelp:SetPoint("RIGHT", -130, 0)
+    raidHelp:SetHeight(32)
+    raidHelp:SetJustifyV("TOP")
+    raidHelp:SetWordWrap(true)
 
-    -- Aura icon ---------------------------------------------------------------
-    local auraCard = CreateCard(page, 622, 96)
-    auraCard:SetPoint("TOPLEFT", 0, -483)
-    local atitle = CreateLabel(auraCard, "Aura icon position", 14, C.text)
-    atitle:SetPoint("TOPLEFT", 16, -14)
-    local adesc = CreateLabel(auraCard, "Unlock the PI aura icon, drag it where you want it, then lock it again.", 10, C.muted)
-    adesc:SetPoint("TOPLEFT", atitle, "BOTTOMLEFT", 0, -4)
+    local test = CreateButton(raidCard, "Test alert", 100, 30, false)
+    test:SetPoint("BOTTOMRIGHT", -16, 14)
+    test:SetScript("OnClick", function() if NS.RequestManager then NS.RequestManager:TestRequest() end end)
 
-    self.moveAuraButton = CreateButton(auraCard, "Move aura icon", 136, 30, true)
-    self.moveAuraButton:SetPoint("BOTTOMLEFT", 16, 12)
+    -- Aura icon settings ------------------------------------------------------
+    local auraCard = CreateCard(page, 236, 240)
+    auraCard:SetPoint("TOPLEFT", raidCard, "TOPRIGHT", 14, 0)
+    self.auraSettingsCard = auraCard
+    local auraTitle = CreateLabel(auraCard, "Aura icon settings", 15, C.text)
+    auraTitle:SetPoint("TOPLEFT", 16, -14)
+    local auraDesc = CreateLabel(auraCard, "Configure the movable PI alert icon.", 10, C.muted)
+    auraDesc:SetPoint("TOPLEFT", auraTitle, "BOTTOMLEFT", 0, -4)
+
+    self.alertControls.auraIcon = CreateCheckbox(auraCard, "Enable aura icon",
+        function() return NS.db.alerts.auraIcon end,
+        function(value) setVisualOption("auraIcon", value, true) end)
+    self.alertControls.auraIcon:SetPoint("TOPLEFT", 16, -54)
+    self.alertControls.auraIcon:SetPoint("RIGHT", -16, 0)
+
+    self.auraIconSizeField = self:CreateCompactNumberField(auraCard, "Icon size",
+        function() return NS.db.auraIcon.size end,
+        function(value)
+            NS.db.auraIcon.size = value
+            if NS.FrameAlerts then NS.FrameAlerts:ApplyAuraIconPosition() end
+            if NS.Detector then NS.Detector:OnSettingsChanged() end
+        end, 12, 96, 90, 0)
+    self.auraIconSizeField:SetPoint("TOPLEFT", 16, -94)
+
+    local auraMoveHelp = CreateLabel(auraCard, "Unlock the icon, drag it into place, then lock it again.", 10, C.muted)
+    auraMoveHelp:SetPoint("TOPLEFT", 16, -151)
+    auraMoveHelp:SetPoint("RIGHT", -16, 0)
+    auraMoveHelp:SetHeight(32)
+    auraMoveHelp:SetJustifyV("TOP")
+    auraMoveHelp:SetWordWrap(true)
+
+    self.moveAuraButton = CreateButton(auraCard, "Move icon", 110, 30, true)
+    self.moveAuraButton:SetPoint("BOTTOMLEFT", 16, 14)
     self.moveAuraButton:SetScript("OnClick", function()
         if NS.FrameAlerts then NS.FrameAlerts:ToggleAuraUnlock() end
     end)
-    local resetPos = CreateButton(auraCard, "Reset position", 112, 30, false)
+    local resetPos = CreateButton(auraCard, "Reset", 86, 30, false)
     resetPos:SetPoint("LEFT", self.moveAuraButton, "RIGHT", 8, 0)
     resetPos:SetScript("OnClick", function()
         if NS.FrameAlerts then NS.FrameAlerts:ResetAuraIconPosition() end
     end)
 
-    local test = CreateButton(auraCard, "Test alert", 100, 30, false)
-    test:SetPoint("BOTTOMRIGHT", -16, 12)
-    test:SetScript("OnClick", function() if NS.RequestManager then NS.RequestManager:TestRequest() end end)
+    -- Whisper settings --------------------------------------------------------
+    local whisperCard = CreateCard(page, 236, 274)
+    whisperCard:SetPoint("TOPLEFT", auraCard, "BOTTOMLEFT", 0, -12)
+    self.whisperSettingsCard = whisperCard
+    local whisperTitle = CreateLabel(whisperCard, "Whisper settings", 15, C.text)
+    whisperTitle:SetPoint("TOPLEFT", 16, -14)
+    local whisperDesc = CreateLabel(whisperCard, "Sound and PI cooldown behavior for accepted whispers.", 10, C.muted)
+    whisperDesc:SetPoint("TOPLEFT", whisperTitle, "BOTTOMLEFT", 0, -4)
+    whisperDesc:SetPoint("RIGHT", -16, 0)
+    whisperDesc:SetWordWrap(true)
+
+    self.alertControls.sound = CreateCheckbox(whisperCard, "Enable whisper sound",
+        function() return NS.db.alerts.sound end,
+        function(value) setVisualOption("sound", value, false) end)
+    self.alertControls.sound:SetPoint("TOPLEFT", 16, -58)
+    self.alertControls.sound:SetPoint("RIGHT", -16, 0)
+
+    local soundLabel = CreateLabel(whisperCard, "Sound file", 10, C.muted)
+    soundLabel:SetPoint("TOPLEFT", 16, -92)
+    self.soundPicker = self:CreateSoundPicker(whisperCard, 204)
+    self.soundPicker:SetPoint("TOPLEFT", 16, -108)
+
+    self.soundCooldownCompact = self:CreateCompactNumberField(whisperCard, "Sound cooldown",
+        function() return NS.db.alerts.soundCooldown end,
+        function(v) NS.db.alerts.soundCooldown = v end, 0, 10, 90, 1)
+    self.soundCooldownCompact:SetPoint("TOPLEFT", 16, -150)
+
+    self.alertControls.whisperOnPICooldown = CreateCheckbox(whisperCard, "Alert during PI cooldown",
+        function() return NS.db.alerts.whisperOnPICooldown == true end,
+        function(value) NS.db.alerts.whisperOnPICooldown = value and true or false end)
+    self.alertControls.whisperOnPICooldown:SetPoint("TOPLEFT", 16, -202)
+    self.alertControls.whisperOnPICooldown:SetPoint("RIGHT", -16, 0)
+
+    local whisperCooldownHelp = CreateLabel(whisperCard, "Accept matching whispers and trigger their visual and sound alerts while PI is unavailable.", 10, C.muted)
+    whisperCooldownHelp:SetPoint("TOPLEFT", 16, -232)
+    whisperCooldownHelp:SetPoint("RIGHT", -16, 0)
+    whisperCooldownHelp:SetHeight(38)
+    whisperCooldownHelp:SetJustifyV("TOP")
+    whisperCooldownHelp:SetWordWrap(true)
 end
 
 function UI:RefreshGlowSettings()
@@ -1685,15 +1720,17 @@ function UI:ShowSoundPopup(anchor)
 end
 
 function UI:RefreshAlertsPage()
-    if not self.alertCards then return end
-    for _, card in pairs(self.alertCards) do card:Refresh() end
+    if not self.alertControls then return end
+    for _, control in pairs(self.alertControls) do control:Refresh() end
     if self.soundPicker then self.soundPicker:Refresh() end
     if self.soundCooldownCompact then self.soundCooldownCompact:Refresh() end
     if self.spellAlertTimingDropdown then self.spellAlertTimingDropdown:Refresh() end
+    if self.frameIconTypeDropdown then self.frameIconTypeDropdown:Refresh() end
+    if self.auraIconSizeField then self.auraIconSizeField:Refresh() end
     self:RefreshGlowSettings()
     if self.moveAuraButton then
         local unlocked = NS.FrameAlerts and NS.FrameAlerts.auraUnlocked
-        self.moveAuraButton:SetLabel(unlocked and "Lock aura icon" or "Move aura icon")
+        self.moveAuraButton:SetLabel(unlocked and "Lock icon" or "Move icon")
     end
 end
 

@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 8
+NS.SETTINGS_REVISION = 9
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -130,8 +130,11 @@ NS.DEFAULTS = {
     alerts = {
         glow = true,
         frameIcon = true,
+        frameIconType = "PI", -- PI, SPELL; whispers always fall back to PI
+        frameIconCooldownSwipe = true,
         auraIcon = true,
         sound = true,
+        whisperOnPICooldown = false,
         spellAlertTiming = "PI_READY", -- PI_READY, ALWAYS_TRACK
         soundKey = "builtin:Blizzard - Raid Warning",
         soundCooldown = 2,
