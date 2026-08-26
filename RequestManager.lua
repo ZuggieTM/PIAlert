@@ -144,7 +144,7 @@ function RM:TestRequest()
     unit = unit or "player"
 
     local name = UnitName(unit) or "Test Player"
-    local guid = UnitGUID(unit) or "PIPriority-Test"
+    local guid = UnitGUID(unit) or "PIAlert-Test"
     local request = {
         key = self:MakeKey(guid, name),
         guid = guid,

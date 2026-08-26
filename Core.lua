@@ -350,8 +350,8 @@ function NS:GetSpellIcon(spellID)
 end
 
 function NS:ResetDatabase()
-    PIPriorityV2DB = DeepCopy(self.DEFAULTS)
-    self.db = PIPriorityV2DB
+    PIAlertDB = DeepCopy(self.DEFAULTS)
+    self.db = PIAlertDB
     if self.RequestManager then self.RequestManager:ClearAll("reset") end
     if self.Detector then self.Detector:OnSettingsChanged() end
     if self.FrameAlerts then self.FrameAlerts:OnSettingsChanged(true) end
@@ -363,17 +363,17 @@ function NS:ResetDatabase()
 end
 
 function NS:InitializeDatabase()
-    if type(PIPriorityV2DB) ~= "table" or PIPriorityV2DB.schema ~= self.DB_SCHEMA then
-        PIPriorityV2DB = DeepCopy(self.DEFAULTS)
+    if type(PIAlertDB) ~= "table" or PIAlertDB.schema ~= self.DB_SCHEMA then
+        PIAlertDB = DeepCopy(self.DEFAULTS)
     else
-        MergeDefaults(PIPriorityV2DB, self.DEFAULTS)
+        MergeDefaults(PIAlertDB, self.DEFAULTS)
 
         -- 1.0.5: update the original glow defaults without resetting the rest
         -- of an existing configuration. Values are migrated only when they
         -- still match the old shipped defaults.
-        local revision = tonumber(PIPriorityV2DB.settingsRevision) or 1
+        local revision = tonumber(PIAlertDB.settingsRevision) or 1
         if revision < 2 then
-            local alerts = PIPriorityV2DB.alerts or {}
+            local alerts = PIAlertDB.alerts or {}
             if tonumber(alerts.glowPixelLines) == 8 then
                 alerts.glowPixelLines = 12
             end
@@ -384,74 +384,74 @@ function NS:InitializeDatabase()
                 and math.abs((tonumber(c[3]) or 0) - 1.00) < 0.001 then
                 alerts.glowColor = { 1.00, 0.82, 0.20, tonumber(c[4]) or 1.00 }
             end
-            PIPriorityV2DB.settingsRevision = 2
+            PIAlertDB.settingsRevision = 2
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 3 then
-            PIPriorityV2DB.settingsRevision = 3
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 3 then
+            PIAlertDB.settingsRevision = 3
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 4 then
-            PIPriorityV2DB.settingsRevision = 4
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 4 then
+            PIAlertDB.settingsRevision = 4
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 5 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 5 then
             -- 1.0.22: Grace Period was removed because numeric spell cooldown
             -- values can become secret during combat in Midnight.
-            if PIPriorityV2DB.requests then
-                PIPriorityV2DB.requests.gracePeriod = nil
+            if PIAlertDB.requests then
+                PIAlertDB.requests.gracePeriod = nil
             end
-            PIPriorityV2DB.settingsRevision = 5
+            PIAlertDB.settingsRevision = 5
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 6 then
-            if PIPriorityV2DB.alerts then
-                PIPriorityV2DB.alerts.glowAutoCastParticles = nil
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 6 then
+            if PIAlertDB.alerts then
+                PIAlertDB.alerts.glowAutoCastParticles = nil
             end
-            PIPriorityV2DB.settingsRevision = 6
+            PIAlertDB.settingsRevision = 6
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 7 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 7 then
             -- 1.0.29: Existing users start in the recommended mode. Secure spell
             -- visuals stay active while PI is unavailable, but sounds do not.
-            PIPriorityV2DB.alerts = PIPriorityV2DB.alerts or {}
-            PIPriorityV2DB.alerts.spellAlertTiming = "ALWAYS_TRACK"
-            PIPriorityV2DB.settingsRevision = 7
+            PIAlertDB.alerts = PIAlertDB.alerts or {}
+            PIAlertDB.alerts.spellAlertTiming = "ALWAYS_TRACK"
+            PIAlertDB.settingsRevision = 7
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 8 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 8 then
             -- 1.0.30: PI Ready Only is the safer default. Casting PI now hides
             -- secure allied-buff visuals instead of tracking them through PI's CD.
-            PIPriorityV2DB.alerts = PIPriorityV2DB.alerts or {}
-            PIPriorityV2DB.alerts.spellAlertTiming = "PI_READY"
-            PIPriorityV2DB.settingsRevision = 8
+            PIAlertDB.alerts = PIAlertDB.alerts or {}
+            PIAlertDB.alerts.spellAlertTiming = "PI_READY"
+            PIAlertDB.settingsRevision = 8
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 9 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 9 then
             -- Alert cards gained explicit raidframe icon and whisper cooldown
             -- behavior. MergeDefaults supplies the compatibility-preserving
             -- values for existing users.
-            PIPriorityV2DB.settingsRevision = 9
+            PIAlertDB.settingsRevision = 9
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 10 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 10 then
             -- Whisper sounds now use one fixed anti-spam window instead of a
             -- user-facing throttle setting.
-            if PIPriorityV2DB.alerts then
-                PIPriorityV2DB.alerts.soundCooldown = nil
+            if PIAlertDB.alerts then
+                PIAlertDB.alerts.soundCooldown = nil
             end
-            PIPriorityV2DB.settingsRevision = 10
+            PIAlertDB.settingsRevision = 10
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 11 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 11 then
             -- Store the optional account-wide PI macro target. MergeDefaults
             -- supplies an empty target for existing installations.
-            PIPriorityV2DB.settingsRevision = 11
+            PIAlertDB.settingsRevision = 11
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 12 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 12 then
             -- Existing named-target macros retain their target. Everything else
             -- starts as the explicit mouseover macro type.
-            PIPriorityV2DB.macro = PIPriorityV2DB.macro or {}
-            if self:NormalizeMacroTarget(PIPriorityV2DB.macro.target) then
-                PIPriorityV2DB.macro.mode = "PLAYER"
+            PIAlertDB.macro = PIAlertDB.macro or {}
+            if self:NormalizeMacroTarget(PIAlertDB.macro.target) then
+                PIAlertDB.macro.mode = "PLAYER"
             else
-                PIPriorityV2DB.macro.mode = "MOUSEOVER"
+                PIAlertDB.macro.mode = "MOUSEOVER"
             end
-            PIPriorityV2DB.settingsRevision = 12
+            PIAlertDB.settingsRevision = 12
         end
     end
-    self.db = PIPriorityV2DB
+    self.db = PIAlertDB
 end
 
 function NS:InitializeModules()

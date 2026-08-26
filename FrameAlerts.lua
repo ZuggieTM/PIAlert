@@ -52,7 +52,7 @@ function FA:Init()
     self.lastSoundAt = -1000
     self.auraUnlocked = false
     self.lgf = nil
-    self.glowKey = "PIPriority"
+    self.glowKey = "PIAlert"
     self.lgfInitialized = false
     self.lgfRefreshRegistered = false
     self.lgfOptions = {
@@ -189,7 +189,7 @@ function FA:StartGlow(visual, request)
 end
 
 function FA:CreateAuraIcon()
-    local frame = CreateFrame("Frame", "PIPriorityAuraIcon", UIParent, "BackdropTemplate")
+    local frame = CreateFrame("Frame", "PIAlertAuraIcon", UIParent, "BackdropTemplate")
     self.auraIcon = frame
     frame:SetSize(NS.db.auraIcon.size or 52, NS.db.auraIcon.size or 52)
     frame:SetFrameStrata("HIGH")

@@ -252,7 +252,7 @@ function UI:CreateDropdown(parent, width, options, getValue, setValue)
 end
 
 function UI:CreateMainFrame()
-    local frame = CreateFrame("Frame", "PIPriorityOptions", UIParent, "BackdropTemplate")
+    local frame = CreateFrame("Frame", "PIAlertOptions", UIParent, "BackdropTemplate")
     self.frame = frame
     frame:SetSize(850, 700)
     frame:SetFrameStrata("DIALOG")
@@ -354,7 +354,7 @@ function UI:CreateMainFrame()
     self:BuildAlertsPage()
     self:BuildMacrosPage()
 
-    table.insert(UISpecialFrames, "PIPriorityOptions")
+    table.insert(UISpecialFrames, "PIAlertOptions")
     self:SelectPage(NS.db.ui.page or "Requests")
     frame:Hide()
 end

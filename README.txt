@@ -1,11 +1,11 @@
-PI Alert 1.0.46-beta
+PI Alert 1.0.47-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
 
 INSTALL
 -------
-1. Extract the PIPriority folder into:
+1. Extract the PIAlert folder into:
    World of Warcraft/_retail_/Interface/AddOns/
 2. Start/reload WoW.
 3. Type /pia to open settings.
@@ -130,6 +130,13 @@ COMMANDS
 /pia clear      Clear all requests
 /pia reset      Reset settings
 /pia help       Show the formatted command list
+
+1.0.47-beta
+-----------
+- Completed the internal PI Alert rename across the addon folder, TOC, saved
+  database, frame names, media paths and test identifiers.
+- Removed two obsolete Lua files that were no longer loaded by the addon.
+- This pre-release database rename intentionally starts with fresh settings.
 
 1.0.46-beta
 -----------
@@ -297,11 +304,6 @@ COMMANDS
 - Kept C_UnitAuras.AddAuraSound Added as a compatibility fallback.
 - Allied aura sound registrations are now removed through the matching API.
 - Kept the secret-safe Power Infusion cooldown readiness logic from 1.0.22.
-
-1.0.19-beta
------------
-- Renamed the addon from PI Priority to PI Alert.
-- Kept the internal PIPriority folder and SavedVariables name for upgrade compatibility.
 
 1.0.16-beta
 -----------

@@ -2,8 +2,8 @@
 ## Title: PI Alert
 ## Notes: Power Infusion alerts from whispers and allied cooldown activations.
 ## Author: Jesper
-## Version: 1.0.46-beta
-## SavedVariables: PIPriorityV2DB
+## Version: 1.0.47-beta
+## SavedVariables: PIAlertDB
 ## OptionalDeps: LibSharedMedia-3.0, SharedMedia, Masque
 
 Libs\LibStub\LibStub.lua

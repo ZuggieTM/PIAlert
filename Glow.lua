@@ -3,7 +3,7 @@ local _, NS = ...
 local Glow = {}
 NS.Glow = Glow
 
-local MEDIA = "Interface\\AddOns\\PIPriority\\Media\\"
+local MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\"
 local DASH_H = MEDIA .. "secure-dash-h.tga"
 local DASH_V = MEDIA .. "secure-dash-v.tga"
 local MASK_TEX = "Interface\\Buttons\\WHITE8X8"
