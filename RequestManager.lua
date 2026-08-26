@@ -53,6 +53,7 @@ function RM:Receive(guid, name, unit, source, spellID, message)
 
     local existing = self.active[key]
     if existing then
+        existing.requestedAt = now
         existing.expiresAt = now + duration
         existing.unit = unit or existing.unit
         existing.name = displayName
@@ -83,6 +84,7 @@ function RM:Activate(request)
     local now = GetTime()
     local key = request.key
     local wasActive = self.active[key] ~= nil
+    request.requestedAt = now
     request.expiresAt = now + (tonumber(NS.db.requests.duration) or 5)
     self.active[key] = request
     self:ScheduleExpiry(request)

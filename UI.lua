@@ -1407,7 +1407,7 @@ function UI:BuildAlertsPage()
 
     local styleLabel = CreateLabel(raidCard, "Glow style", 10, C.muted)
     styleLabel:SetPoint("TOPLEFT", 16, -88)
-    self.glowStyleDropdown = self:CreateDropdown(raidCard, 160, {
+    self.glowStyleDropdown = self:CreateDropdown(raidCard, 350, {
         { value = "PIXEL", label = "Pixel Glow" },
         { value = "AUTOCAST", label = "AutoCast Glow" },
         { value = "BUTTON", label = "Button Glow" },
@@ -1419,20 +1419,20 @@ function UI:BuildAlertsPage()
     self.glowStyleDropdown:SetPoint("TOPLEFT", 16, -104)
 
     local colorLabel = CreateLabel(raidCard, "Color", 10, C.muted)
-    colorLabel:SetPoint("TOPLEFT", 192, -88)
-    self.glowColorModeDropdown = self:CreateDropdown(raidCard, 112, {
-        { value = "CUSTOM", label = "Custom" },
-        { value = "CLASS", label = "Class color" },
+    colorLabel:SetPoint("TOPLEFT", 16, -148)
+    self.glowColorModeDropdown = self:CreateDropdown(raidCard, 280, {
+        { value = "CUSTOM", label = "Custom color" },
+        { value = "CLASS", label = "Requester class color" },
     }, function() return NS.db.alerts.glowColorMode end, function(value)
         NS.db.alerts.glowColorMode = value
         UI:ScheduleGlowRefresh()
         UI:RefreshGlowSettings()
     end)
-    self.glowColorModeDropdown:SetPoint("TOPLEFT", 192, -104)
+    self.glowColorModeDropdown:SetPoint("TOPLEFT", 16, -164)
 
     self.glowColorSwatch = self:CreateGlowColorSwatch(raidCard)
-    self.glowColorSwatch:SetSize(54, 34)
-    self.glowColorSwatch:SetPoint("TOPLEFT", 312, -104)
+    self.glowColorSwatch:SetSize(62, 34)
+    self.glowColorSwatch:SetPoint("TOPLEFT", 304, -164)
 
     local function glowSetter(key, value)
         NS.db.alerts[key] = value
@@ -1442,31 +1442,37 @@ function UI:BuildAlertsPage()
     self.glowSpeedField = self:CreateCompactNumberField(raidCard, "Speed (x)",
         function() return NS.db.alerts.glowSpeed end,
         function(v) glowSetter("glowSpeed", v) end, 0.25, 3, 96, 2)
-    self.glowSpeedField:SetPoint("TOPLEFT", 16, -151)
+    self.glowSpeedField:SetPoint("TOPLEFT", 16, -211)
 
     self.glowPixelLinesField = self:CreateCompactNumberField(raidCard, "Lines",
         function() return NS.db.alerts.glowPixelLines end,
         function(v) glowSetter("glowPixelLines", v) end, 1, 20, 96, 0)
-    self.glowPixelLinesField:SetPoint("TOPLEFT", 126, -151)
+    self.glowPixelLinesField:SetPoint("TOPLEFT", 126, -211)
 
     self.glowPixelThicknessField = self:CreateCompactNumberField(raidCard, "Thickness",
         function() return NS.db.alerts.glowPixelThickness end,
         function(v) glowSetter("glowPixelThickness", v) end, 1, 8, 96, 1)
-    self.glowPixelThicknessField:SetPoint("TOPLEFT", 236, -151)
+    self.glowPixelThicknessField:SetPoint("TOPLEFT", 236, -211)
 
     self.glowAutoScaleField = self:CreateCompactNumberField(raidCard, "Scale",
         function() return NS.db.alerts.glowAutoCastScale end,
         function(v) glowSetter("glowAutoCastScale", v) end, 0.5, 3, 96, 1)
-    self.glowAutoScaleField:SetPoint("TOPLEFT", 236, -151)
+    self.glowAutoScaleField:SetPoint("TOPLEFT", 126, -211)
 
     self.alertControls.frameIcon = CreateCheckbox(raidCard, "Show an icon on raidframes",
         function() return NS.db.alerts.frameIcon end,
         function(value) setVisualOption("frameIcon", value, true) end)
-    self.alertControls.frameIcon:SetPoint("TOPLEFT", 16, -215)
+    self.alertControls.frameIcon:SetPoint("TOPLEFT", 16, -272)
     self.alertControls.frameIcon:SetPoint("RIGHT", -16, 0)
 
+    self.alertControls.frameIconCooldownSwipe = CreateCheckbox(raidCard, "Show icon cooldown swipe",
+        function() return NS.db.alerts.frameIconCooldownSwipe ~= false end,
+        function(value) setVisualOption("frameIconCooldownSwipe", value, true) end)
+    self.alertControls.frameIconCooldownSwipe:SetPoint("TOPLEFT", 16, -310)
+    self.alertControls.frameIconCooldownSwipe:SetPoint("RIGHT", -16, 0)
+
     local frameIconTypeLabel = CreateLabel(raidCard, "Raidframe icon", 10, C.muted)
-    frameIconTypeLabel:SetPoint("TOPLEFT", 16, -253)
+    frameIconTypeLabel:SetPoint("TOPLEFT", 16, -348)
     self.frameIconTypeDropdown = self:CreateDropdown(raidCard, 350, {
         { value = "PI", label = "Power Infusion icon" },
         { value = "SPELL", label = "Requester's tracked spell icon" },
@@ -1476,16 +1482,10 @@ function UI:BuildAlertsPage()
         if NS.Detector then NS.Detector:OnSettingsChanged() end
         UI:RefreshAlertsPage()
     end)
-    self.frameIconTypeDropdown:SetPoint("TOPLEFT", 16, -269)
-
-    self.alertControls.frameIconCooldownSwipe = CreateCheckbox(raidCard, "Show cooldown swipe on tracked spell icons",
-        function() return NS.db.alerts.frameIconCooldownSwipe ~= false end,
-        function(value) setVisualOption("frameIconCooldownSwipe", value, true) end)
-    self.alertControls.frameIconCooldownSwipe:SetPoint("TOPLEFT", 16, -311)
-    self.alertControls.frameIconCooldownSwipe:SetPoint("RIGHT", -16, 0)
+    self.frameIconTypeDropdown:SetPoint("TOPLEFT", 16, -364)
 
     local timingLabel = CreateLabel(raidCard, "Tracked spell alerts", 10, C.muted)
-    timingLabel:SetPoint("TOPLEFT", 16, -349)
+    timingLabel:SetPoint("TOPLEFT", 16, -408)
     self.spellAlertTimingDropdown = self:CreateDropdown(raidCard, 350, {
         { value = "PI_READY", label = "PI ready only" },
         { value = "ALWAYS_TRACK", label = "Always track" },
@@ -1494,12 +1494,12 @@ function UI:BuildAlertsPage()
         if NS.Detector then NS.Detector:OnSettingsChanged() end
         UI:RefreshAlertsPage()
     end)
-    self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 16, -365)
+    self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 16, -424)
 
-    local raidHelp = CreateLabel(raidCard, "Spell icon and cooldown swipe apply to tracked buffs. Whisper requests use the PI icon because they have no spell aura.", 10, C.muted)
-    raidHelp:SetPoint("TOPLEFT", 16, -409)
-    raidHelp:SetPoint("RIGHT", -16, 0)
-    raidHelp:SetHeight(42)
+    local raidHelp = CreateLabel(raidCard, "Alerts triggered by whispers fall back to the PI icon.", 10, C.muted)
+    raidHelp:SetPoint("TOPLEFT", 16, -467)
+    raidHelp:SetPoint("RIGHT", -130, 0)
+    raidHelp:SetHeight(32)
     raidHelp:SetJustifyV("TOP")
     raidHelp:SetWordWrap(true)
 
@@ -1508,7 +1508,7 @@ function UI:BuildAlertsPage()
     test:SetScript("OnClick", function() if NS.RequestManager then NS.RequestManager:TestRequest() end end)
 
     -- Aura icon settings ------------------------------------------------------
-    local auraCard = CreateCard(page, 236, 252)
+    local auraCard = CreateCard(page, 236, 240)
     auraCard:SetPoint("TOPLEFT", raidCard, "TOPRIGHT", 14, 0)
     self.auraSettingsCard = auraCard
     local auraTitle = CreateLabel(auraCard, "Aura icon settings", 15, C.text)
@@ -1550,7 +1550,7 @@ function UI:BuildAlertsPage()
     end)
 
     -- Whisper settings --------------------------------------------------------
-    local whisperCard = CreateCard(page, 236, 262)
+    local whisperCard = CreateCard(page, 236, 274)
     whisperCard:SetPoint("TOPLEFT", auraCard, "BOTTOMLEFT", 0, -12)
     self.whisperSettingsCard = whisperCard
     local whisperTitle = CreateLabel(whisperCard, "Whisper settings", 15, C.text)
@@ -1574,13 +1574,20 @@ function UI:BuildAlertsPage()
     self.soundCooldownCompact = self:CreateCompactNumberField(whisperCard, "Sound cooldown",
         function() return NS.db.alerts.soundCooldown end,
         function(v) NS.db.alerts.soundCooldown = v end, 0, 10, 90, 1)
-    self.soundCooldownCompact:SetPoint("TOPLEFT", 16, -154)
+    self.soundCooldownCompact:SetPoint("TOPLEFT", 16, -150)
 
-    self.alertControls.whisperOnPICooldown = CreateCheckbox(whisperCard, "Alert while PI is on cooldown",
+    self.alertControls.whisperOnPICooldown = CreateCheckbox(whisperCard, "Alert during PI cooldown",
         function() return NS.db.alerts.whisperOnPICooldown == true end,
         function(value) NS.db.alerts.whisperOnPICooldown = value and true or false end)
-    self.alertControls.whisperOnPICooldown:SetPoint("TOPLEFT", 16, -213)
+    self.alertControls.whisperOnPICooldown:SetPoint("TOPLEFT", 16, -202)
     self.alertControls.whisperOnPICooldown:SetPoint("RIGHT", -16, 0)
+
+    local whisperCooldownHelp = CreateLabel(whisperCard, "Accept matching whispers and trigger their visual and sound alerts while PI is unavailable.", 10, C.muted)
+    whisperCooldownHelp:SetPoint("TOPLEFT", 16, -232)
+    whisperCooldownHelp:SetPoint("RIGHT", -16, 0)
+    whisperCooldownHelp:SetHeight(38)
+    whisperCooldownHelp:SetJustifyV("TOP")
+    whisperCooldownHelp:SetWordWrap(true)
 end
 
 function UI:RefreshGlowSettings()

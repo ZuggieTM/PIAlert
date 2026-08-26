@@ -410,11 +410,26 @@ function FA:EnsureFrameVisual(target)
         icon:SetPoint("BOTTOMRIGHT", -2, 2)
         icon:SetTexture(NS:GetSpellIcon(NS.PI_SPELL_ID))
 
+        local iconCooldown = CreateFrame("Cooldown", nil, iconFrame, "CooldownFrameTemplate")
+        iconCooldown:SetPoint("TOPLEFT", 2, -2)
+        iconCooldown:SetPoint("BOTTOMRIGHT", -2, 2)
+        iconCooldown:SetFrameLevel(iconFrame:GetFrameLevel() + 1)
+        iconCooldown:EnableMouse(false)
+        iconCooldown:SetReverse(true)
+        iconCooldown:SetDrawSwipe(true)
+        iconCooldown:SetDrawEdge(false)
+        iconCooldown:SetDrawBling(false)
+        if iconCooldown.SetHideCountdownNumbers then
+            iconCooldown:SetHideCountdownNumbers(true)
+        end
+        iconCooldown:Hide()
+
         return {
             host = host,
             glowAnchor = glowAnchor,
             iconFrame = iconFrame,
             icon = icon,
+            iconCooldown = iconCooldown,
             requestKey = nil,
             target = target,
             glowStyle = nil,
@@ -433,6 +448,7 @@ end
 function FA:HideFrameVisual(visual)
     if not visual then return end
     self:StopGlow(visual)
+    if visual.iconCooldown then visual.iconCooldown:Hide() end
     if visual.iconFrame then visual.iconFrame:Hide() end
     if visual.host then visual.host:Hide() end
     visual.requestKey = nil
@@ -486,8 +502,18 @@ function FA:ApplyRequestVisual(request)
             iconSpellID = request.spellID
         end
         visual.icon:SetTexture(NS:GetSpellIcon(iconSpellID))
+        local showRequestSwipe = NS.db.alerts.frameIconCooldownSwipe ~= false
+            and (request.source == "WHISPER" or request.source == "TEST")
+        local swipeDuration = (tonumber(request.expiresAt) or 0) - (tonumber(request.requestedAt) or 0)
+        if showRequestSwipe and swipeDuration > 0 then
+            visual.iconCooldown:SetCooldown(request.requestedAt, swipeDuration)
+            visual.iconCooldown:Show()
+        else
+            visual.iconCooldown:Hide()
+        end
         visual.iconFrame:Show()
     else
+        visual.iconCooldown:Hide()
         visual.iconFrame:Hide()
     end
 end

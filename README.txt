@@ -1,4 +1,4 @@
-PI Alert 1.0.36-beta
+PI Alert 1.0.37-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -67,7 +67,8 @@ Each alert type can be enabled independently:
 - Glow on raid/party frame
 - Power Infusion or tracked spell icon on raid/party frames. Whispers always
   fall back to the Power Infusion icon because they have no spell aura.
-- Optional secure cooldown swipe showing the tracked buff's remaining duration
+- Optional cooldown swipe showing the tracked buff's remaining duration for
+  spell alerts and the request duration for whisper alerts
 - Movable Power Infusion aura icon with configurable size
 - Sound for accepted whisper requests only
 
@@ -117,6 +118,13 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.37-beta
+-----------
+- Refined spacing and wording across all three Alerts settings cards.
+- Moved AutoCast scale beside speed and gave the color selector a full row.
+- Moved and shortened the raidframe icon cooldown-swipe option.
+- Added a request-duration swipe to whisper raidframe icons.
 
 1.0.36-beta
 -----------
