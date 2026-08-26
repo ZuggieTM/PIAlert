@@ -316,7 +316,7 @@ function UI:CreateMainFrame()
 
     self.pages = {}
     self.navButtons = {}
-    local navItems = { "Requests", "Requesters", "Spells", "Alerts" }
+    local navItems = { "Requests", "Spells", "Alerts" }
     for i, name in ipairs(navItems) do
         local btn = CreateFrame("Button", nil, sidebar)
         btn:SetPoint("TOPLEFT", 10, -18 - (i - 1) * 48)
@@ -350,7 +350,6 @@ function UI:CreateMainFrame()
     end
 
     self:BuildRequestsPage()
-    self:BuildRequestersPage()
     self:BuildSpellsPage()
     self:BuildAlertsPage()
 
@@ -392,14 +391,12 @@ end
 function UI:Refresh()
     if not self.frame then return end
     self:RefreshRequestsPage()
-    self:RefreshRequestersPage()
     self:RefreshSpellsPage()
     self:RefreshAlertsPage()
 end
 
 function UI:RefreshPage(name)
     if name == "Requests" then self:RefreshRequestsPage()
-    elseif name == "Requesters" then self:RefreshRequestersPage()
     elseif name == "Spells" then self:RefreshSpellsPage()
     elseif name == "Alerts" then self:RefreshAlertsPage()
     end
@@ -413,9 +410,9 @@ function UI:BuildRequestsPage()
     local page = CreateFrame("Frame", nil, self.content)
     page:SetAllPoints()
     self.pages.Requests = page
-    CreatePageHeading(page, "Requests", "Choose how players can ask for Power Infusion and which whisper phrases are accepted.")
+    CreatePageHeading(page, "Requests", "Choose how requests are accepted, who can make them, and which whisper phrases are recognized.")
 
-    local sourceCard = CreateCard(page, 632, 125)
+    local sourceCard = CreateCard(page, 632, 220)
     sourceCard:SetPoint("TOPLEFT", 0, -72)
     self.requestSourceCard = sourceCard
 
@@ -441,22 +438,58 @@ function UI:BuildRequestsPage()
     end)
     self.requestModeDropdown:SetPoint("TOPLEFT", 346, -68)
 
-    local phraseCard = CreateCard(page, 632, 340)
+    local whoLabel = CreateLabel(sourceCard, "Who can request?", 11, C.text)
+    whoLabel:SetPoint("TOPLEFT", 16, -120)
+    self.requesterModeDescription = CreateLabel(sourceCard, "", 10, C.muted)
+    self.requesterModeDescription:SetPoint("TOPLEFT", 16, -138)
+    self.requesterModeDescription:SetWidth(300)
+
+    self.requesterDropdown = self:CreateDropdown(sourceCard, 270, {
+        { value = "EVERYONE", label = "Everyone in Group" },
+        { value = "FOCUS", label = "Focus" },
+        { value = "SPECIFIC", label = "Specific Players" },
+    }, function() return NS.db.requesters.mode end, function(value)
+        NS.db.requesters.mode = value
+        if NS.Detector then NS.Detector:OnSettingsChanged() end
+        UI:RefreshRequestsPage()
+    end)
+    self.requesterDropdown:SetPoint("TOPLEFT", 346, -122)
+
+    self.requesterFallbackLabel = CreateLabel(sourceCard, "Fallback if none available", 11, C.text)
+    self.requesterFallbackLabel:SetPoint("TOPLEFT", 16, -174)
+    self.requesterFallbackDescription = CreateLabel(sourceCard, "Used only when none of the listed players are in your group.", 10, C.muted)
+    self.requesterFallbackDescription:SetPoint("TOPLEFT", 16, -192)
+    self.requesterFallbackDescription:SetWidth(300)
+
+    self.requesterFallbackDropdown = self:CreateDropdown(sourceCard, 270, {
+        { value = "NONE", label = "No fallback" },
+        { value = "FOCUS", label = "Focus" },
+        { value = "EVERYONE", label = "Everyone in Group" },
+    }, function() return NS.db.requesters.fallback or "NONE" end, function(value)
+        NS.db.requesters.fallback = value
+        if NS.Detector then NS.Detector:OnSettingsChanged() end
+    end)
+    self.requesterFallbackDropdown:SetPoint("TOPLEFT", 346, -176)
+
+    local phraseCard = CreateCard(page, 632, 282)
     phraseCard:SetPoint("TOPLEFT", sourceCard, "BOTTOMLEFT", 0, -14)
     self.phraseCard = phraseCard
 
     local ptitle = CreateLabel(phraseCard, "Whisper phrases", 15, C.text)
     ptitle:SetPoint("TOPLEFT", 16, -14)
-    local pdesc = CreateLabel(phraseCard, "Contains matches whole words/phrases, so 'PI' matches 'PI on Zuggie' but not 'spirit'.", 10, C.muted)
-    pdesc:SetPoint("TOPLEFT", ptitle, "BOTTOMLEFT", 0, -4)
-    pdesc:SetPoint("RIGHT", -150, 0)
+    local pdesc = CreateLabel(phraseCard, "Contains matches whole words or phrases.", 10, C.muted)
+    pdesc:SetPoint("TOPLEFT", 16, -52)
+    pdesc:SetPoint("RIGHT", -14, 0)
+    pdesc:SetWordWrap(true)
+    self.phraseDescription = pdesc
 
     local add = CreateButton(phraseCard, "+ Add phrase", 112, 30, true)
     add:SetPoint("TOPRIGHT", -14, -14)
     add:SetScript("OnClick", function() UI:ShowPhraseDialog() end)
+    self.phraseAddButton = add
 
     local scroll = CreateFrame("ScrollFrame", nil, phraseCard)
-    scroll:SetPoint("TOPLEFT", 14, -66)
+    scroll:SetPoint("TOPLEFT", 14, -78)
     scroll:SetPoint("BOTTOMRIGHT", -14, 14)
     scroll:EnableMouseWheel(true)
     local child = CreateFrame("Frame", nil, scroll)
@@ -470,22 +503,99 @@ function UI:BuildRequestsPage()
     self.phraseScroll = scroll
     self.phraseChild = child
     self.phraseRows = {}
+
+    local playerCard = CreateCard(page, 632, 282)
+    playerCard:SetPoint("TOPLEFT", sourceCard, "BOTTOMLEFT", 0, -14)
+    self.playerCard = playerCard
+
+    local playerTitle = CreateLabel(playerCard, "Specific players", 15, C.text)
+    playerTitle:SetPoint("TOPLEFT", 16, -14)
+    local playerDesc = CreateLabel(playerCard, "Names are case- and realm-insensitive.", 10, C.muted)
+    playerDesc:SetPoint("TOPLEFT", playerTitle, "BOTTOMLEFT", 0, -4)
+    playerDesc:SetPoint("RIGHT", -14, 0)
+    self.playerDescription = playerDesc
+
+    self.playerInput = CreateEditBox(playerCard, 330, 34, "Player name")
+    self.playerInput:SetPoint("TOPLEFT", 16, -62)
+    self.playerInput:SetScript("OnEnterPressed", function() UI:AddSpecificPlayer() end)
+    self.playerAddButton = CreateButton(playerCard, "Add player", 90, 34, true)
+    self.playerAddButton:SetPoint("LEFT", self.playerInput, "RIGHT", 8, 0)
+    self.playerAddButton:SetScript("OnClick", function() UI:AddSpecificPlayer() end)
+
+    local listScroll = CreateFrame("ScrollFrame", nil, playerCard)
+    listScroll:SetPoint("TOPLEFT", 14, -108)
+    listScroll:SetPoint("BOTTOMRIGHT", -14, 14)
+    listScroll:EnableMouseWheel(true)
+    local playerChild = CreateFrame("Frame", nil, listScroll)
+    playerChild:SetWidth(590)
+    playerChild:SetHeight(1)
+    listScroll:SetScrollChild(playerChild)
+    listScroll:SetScript("OnMouseWheel", function(self, delta)
+        local maxScroll = math.max(0, playerChild:GetHeight() - self:GetHeight())
+        self:SetVerticalScroll(math.max(0, math.min(maxScroll, self:GetVerticalScroll() - delta * 42)))
+    end)
+    self.playerListScroll = listScroll
+    self.playerListChild = playerChild
+    self.playerRows = {}
+end
+
+function UI:LayoutRequestDetailCards(whispersEnabled, specific)
+    local both = whispersEnabled and specific
+    local width = both and 309 or 632
+    local height = specific and 282 or 336
+
+    self.phraseCard:ClearAllPoints()
+    self.playerCard:ClearAllPoints()
+    self.phraseCard:SetShown(whispersEnabled)
+    self.playerCard:SetShown(specific)
+
+    if whispersEnabled then
+        self.phraseCard:SetSize(width, height)
+        self.phraseCard:SetPoint("TOPLEFT", self.requestSourceCard, "BOTTOMLEFT", 0, -14)
+    end
+    if specific then
+        self.playerCard:SetSize(width, height)
+        if both then
+            self.playerCard:SetPoint("TOPLEFT", self.phraseCard, "TOPRIGHT", 14, 0)
+        else
+            self.playerCard:SetPoint("TOPLEFT", self.requestSourceCard, "BOTTOMLEFT", 0, -14)
+        end
+    end
+
+    if whispersEnabled then
+        local rowWidth = width - 42
+        self.phraseListWidth = rowWidth
+        self.phraseChild:SetWidth(rowWidth)
+        for _, row in ipairs(self.phraseRows) do row:SetWidth(rowWidth) end
+        if self.phraseEmptyRow then self.phraseEmptyRow:SetWidth(rowWidth) end
+    end
+
+    if specific then
+        local rowWidth = width - 42
+        self.playerListWidth = rowWidth
+        self.playerListChild:SetWidth(rowWidth)
+        self.playerInput:SetWidth(math.max(120, width - 138))
+        for _, row in ipairs(self.playerRows) do row:SetWidth(rowWidth) end
+        if self.playerEmptyRow then self.playerEmptyRow:SetWidth(rowWidth) end
+    end
 end
 
 function UI:RefreshPhraseRows()
     if not self.phraseChild then return end
     for _, row in ipairs(self.phraseRows) do row:Hide() end
 
+    local rowWidth = self.phraseListWidth or 590
     local phrases = NS.db.requests.phrases or {}
     if #phrases == 0 then
         if not self.phraseEmptyRow then
             local row = CreateFrame("Frame", nil, self.phraseChild)
-            row:SetSize(590, 44)
+            row:SetSize(rowWidth, 44)
             local text = CreateLabel(row, "No phrases yet. Add one to accept whisper requests.", 12, C.muted)
             text:SetPoint("LEFT", 12, 0)
             row.emptyText = text
             self.phraseEmptyRow = row
         end
+        self.phraseEmptyRow:SetWidth(rowWidth)
         self.phraseEmptyRow:ClearAllPoints()
         self.phraseEmptyRow:SetPoint("TOPLEFT", 0, 0)
         self.phraseEmptyRow:Show()
@@ -500,15 +610,15 @@ function UI:RefreshPhraseRows()
         local row = self.phraseRows[i]
         if not row then
             row = CreateFrame("Frame", nil, self.phraseChild, "BackdropTemplate")
-            row:SetSize(590, 44)
+            row:SetSize(rowWidth, 44)
             SetBackdrop(row, C.panel2, C.borderSoft)
 
             local text = CreateLabel(row, "", 12, C.text)
             text:SetPoint("LEFT", 12, 0)
-            text:SetPoint("RIGHT", -270, 0)
+            text:SetPoint("RIGHT", -158, 0)
             row.text = text
 
-            row.mode = self:CreateDropdown(row, 120, {
+            row.mode = self:CreateDropdown(row, 96, {
                 { value = "CONTAINS", label = "Contains" },
                 { value = "EXACT", label = "Exact" },
             }, function() return row.data and row.data.match or "CONTAINS" end, function(value)
@@ -527,6 +637,7 @@ function UI:RefreshPhraseRows()
             self.phraseRows[i] = row
         end
 
+        row:SetWidth(rowWidth)
         row.data = phrase
         row.index = i
         row.text:SetText(phrase.text)
@@ -540,92 +651,36 @@ function UI:RefreshPhraseRows()
 end
 
 function UI:RefreshRequestsPage()
-    if not self.requestModeDropdown then return end
+    if not self.requestModeDropdown or not self.requesterDropdown then return end
     self.requestModeDropdown:Refresh()
+    self.requesterDropdown:Refresh()
 
     local mode = NS.db.requests.mode or "BOTH"
     local whispersEnabled = mode == "BOTH" or mode == "WHISPER"
+    local requesterMode = NS.db.requesters.mode or "EVERYONE"
+    local specific = requesterMode == "SPECIFIC"
 
-    if self.phraseCard then self.phraseCard:SetShown(whispersEnabled) end
+    if requesterMode == "SPECIFIC" then
+        self.requesterModeDescription:SetText("Listed players have priority while any are in your group.")
+    elseif requesterMode == "FOCUS" then
+        self.requesterModeDescription:SetText("Only your current focus while they are in your group.")
+    else
+        self.requesterModeDescription:SetText("Anyone currently in your party or raid.")
+    end
+
+    self.requesterFallbackLabel:SetShown(specific)
+    self.requesterFallbackDescription:SetShown(specific)
+    self.requesterFallbackDropdown:SetShown(specific)
+    self.requestSourceCard:SetHeight(specific and 220 or 166)
+    self:LayoutRequestDetailCards(whispersEnabled, specific)
 
     if whispersEnabled then
         self:RefreshPhraseRows()
     end
-end
-
--- -----------------------------------------------------------------------------
--- Requesters page
--- -----------------------------------------------------------------------------
-
-function UI:BuildRequestersPage()
-    local page = CreateFrame("Frame", nil, self.content)
-    page:SetAllPoints()
-    self.pages.Requesters = page
-    CreatePageHeading(page, "Requesters", "Control who is allowed to create a PI request. Names are case- and realm-insensitive.")
-
-    local modeCard = CreateCard(page, 632, 132)
-    modeCard:SetPoint("TOPLEFT", 0, -72)
-    local title = CreateLabel(modeCard, "Who can request?", 15, C.text)
-    title:SetPoint("TOPLEFT", 16, -14)
-    local desc = CreateLabel(modeCard, "Everyone means anyone currently in your party or raid.", 10, C.muted)
-    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-
-    self.requesterDropdown = self:CreateDropdown(modeCard, 270, {
-        { value = "EVERYONE", label = "Everyone in Group" },
-        { value = "FOCUS", label = "Focus" },
-        { value = "SPECIFIC", label = "Specific Players" },
-    }, function() return NS.db.requesters.mode end, function(value)
-        NS.db.requesters.mode = value
-        if NS.Detector then NS.Detector:OnSettingsChanged() end
-        UI:RefreshRequestersPage()
-    end)
-    self.requesterDropdown:SetPoint("TOPLEFT", 16, -76)
-
-    local detailCard = CreateCard(page, 632, 370)
-    detailCard:SetPoint("TOPLEFT", modeCard, "BOTTOMLEFT", 0, -14)
-    self.requesterDetailCard = detailCard
-
-    self.requesterInfo = CreateLabel(detailCard, "", 12, C.muted)
-    self.requesterInfo:SetPoint("TOPLEFT", 16, -18)
-    self.requesterInfo:SetPoint("RIGHT", -16, 0)
-    self.requesterInfo:SetJustifyV("TOP")
-    self.requesterInfo:SetWordWrap(true)
-
-    self.requesterFallbackLabel = CreateLabel(detailCard, "Fallback if none available", 11, C.text)
-    self.requesterFallbackLabel:SetPoint("TOPLEFT", 16, -68)
-
-    self.requesterFallbackDropdown = self:CreateDropdown(detailCard, 270, {
-        { value = "NONE", label = "No fallback" },
-        { value = "FOCUS", label = "Focus" },
-        { value = "EVERYONE", label = "Everyone in Group" },
-    }, function() return NS.db.requesters.fallback or "NONE" end, function(value)
-        NS.db.requesters.fallback = value
-        if NS.Detector then NS.Detector:OnSettingsChanged() end
-    end)
-    self.requesterFallbackDropdown:SetPoint("TOPLEFT", self.requesterFallbackLabel, "BOTTOMLEFT", 0, -7)
-
-    self.playerInput = CreateEditBox(detailCard, 330, 34, "Player name, e.g. Senilemammy")
-    self.playerInput:SetPoint("TOPLEFT", 16, -132)
-    self.playerInput:SetScript("OnEnterPressed", function() UI:AddSpecificPlayer() end)
-    self.playerAddButton = CreateButton(detailCard, "Add player", 102, 34, true)
-    self.playerAddButton:SetPoint("LEFT", self.playerInput, "RIGHT", 8, 0)
-    self.playerAddButton:SetScript("OnClick", function() UI:AddSpecificPlayer() end)
-
-    local listScroll = CreateFrame("ScrollFrame", nil, detailCard)
-    listScroll:SetPoint("TOPLEFT", 16, -182)
-    listScroll:SetPoint("BOTTOMRIGHT", -16, 16)
-    listScroll:EnableMouseWheel(true)
-    local child = CreateFrame("Frame", nil, listScroll)
-    child:SetWidth(590)
-    child:SetHeight(1)
-    listScroll:SetScrollChild(child)
-    listScroll:SetScript("OnMouseWheel", function(self, delta)
-        local maxScroll = math.max(0, child:GetHeight() - self:GetHeight())
-        self:SetVerticalScroll(math.max(0, math.min(maxScroll, self:GetVerticalScroll() - delta * 42)))
-    end)
-    self.playerListScroll = listScroll
-    self.playerListChild = child
-    self.playerRows = {}
+    if specific then
+        self.requesterFallbackDropdown:Refresh()
+        self:RefreshPlayerRows()
+    end
 end
 
 function UI:AddSpecificPlayer()
@@ -642,18 +697,20 @@ end
 function UI:RefreshPlayerRows()
     if not self.playerListChild then return end
     for _, row in ipairs(self.playerRows) do row:Hide() end
+    local rowWidth = self.playerListWidth or 590
     local players = NS.db.requesters.players or {}
     local y = 0
 
     if #players == 0 then
         if not self.playerEmptyRow then
             local row = CreateFrame("Frame", nil, self.playerListChild)
-            row:SetSize(590, 42)
+            row:SetSize(rowWidth, 42)
             local text = CreateLabel(row, "No players added yet.", 12, C.muted)
             text:SetPoint("LEFT", 10, 0)
             row.emptyText = text
             self.playerEmptyRow = row
         end
+        self.playerEmptyRow:SetWidth(rowWidth)
         self.playerEmptyRow:ClearAllPoints()
         self.playerEmptyRow:SetPoint("TOPLEFT", 0, 0)
         self.playerEmptyRow:Show()
@@ -667,7 +724,7 @@ function UI:RefreshPlayerRows()
         local row = self.playerRows[i]
         if not row then
             row = CreateFrame("Frame", nil, self.playerListChild, "BackdropTemplate")
-            row:SetSize(590, 40)
+            row:SetSize(rowWidth, 40)
             SetBackdrop(row, C.panel2, C.borderSoft)
             local name = CreateLabel(row, "", 12, C.text)
             name:SetPoint("LEFT", 12, 0)
@@ -682,6 +739,7 @@ function UI:RefreshPlayerRows()
             end)
             self.playerRows[i] = row
         end
+        row:SetWidth(rowWidth)
         row.index = i
         row.name:SetText(playerName)
         row:ClearAllPoints()
@@ -690,29 +748,6 @@ function UI:RefreshPlayerRows()
         y = y + 46
     end
     self.playerListChild:SetHeight(math.max(1, y))
-end
-
-function UI:RefreshRequestersPage()
-    if not self.requesterDropdown then return end
-    self.requesterDropdown:Refresh()
-    local mode = NS.db.requesters.mode
-    local specific = mode == "SPECIFIC"
-    self.playerInput:SetShown(specific)
-    self.playerAddButton:SetShown(specific)
-    self.playerListScroll:SetShown(specific)
-    self.requesterFallbackLabel:SetShown(specific)
-    self.requesterFallbackDropdown:SetShown(specific)
-    self.requesterDetailCard:SetHeight(specific and 370 or 112)
-
-    if mode == "SPECIFIC" then
-        self.requesterInfo:SetText("Listed players have priority. While at least one listed player is in your group, only listed players can request. If none are present, the fallback below is used.")
-        self.requesterFallbackDropdown:Refresh()
-        self:RefreshPlayerRows()
-    elseif mode == "FOCUS" then
-        self.requesterInfo:SetText("Only your current focus can trigger a request. The focused player must also be in your current party or raid.")
-    else
-        self.requesterInfo:SetText("Any player in your current party or raid can trigger a valid request. Whispers from players outside the group are ignored.")
-    end
 end
 
 -- -----------------------------------------------------------------------------
