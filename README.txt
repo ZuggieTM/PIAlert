@@ -1,4 +1,4 @@
-PI Alert 1.0.37-beta
+PI Alert 1.0.38-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -118,6 +118,13 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.38-beta
+-----------
+- Routed tracked player buffs through the same secure aura tracker as allies.
+- Removed the five-second synthetic self-cast path; /pia test remains the
+  dedicated alert preview.
+- Player raidframe icons now use the tracked buff's real duration swipe.
 
 1.0.37-beta
 -----------
