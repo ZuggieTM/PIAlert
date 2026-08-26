@@ -316,7 +316,7 @@ function UI:CreateMainFrame()
 
     self.pages = {}
     self.navButtons = {}
-    local navItems = { "Requests", "Spells", "Alerts" }
+    local navItems = { "Requests", "Alerts", "Spells" }
     for i, name in ipairs(navItems) do
         local btn = CreateFrame("Button", nil, sidebar)
         btn:SetPoint("TOPLEFT", 10, -18 - (i - 1) * 48)

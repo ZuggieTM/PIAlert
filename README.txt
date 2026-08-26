@@ -1,4 +1,4 @@
-PI Alert 1.0.40-beta
+PI Alert 1.0.41-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -116,6 +116,10 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.41-beta
+-----------
+- Moved Alerts before Spells in the settings navigation.
 
 1.0.40-beta
 -----------
