@@ -1,4 +1,4 @@
-PI Alert 1.0.43-beta
+PI Alert 1.0.44-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -101,6 +101,16 @@ Only accepted whisper requests trigger the selected sound during normal use;
 alerts only and never play a sound. Whisper sounds have a fixed three-second
 anti-spam window.
 
+MACROS
+------
+The Macros page creates or updates one account-wide PI Alert macro under General
+Macros. Player, Focus and Mouseover variants are available. Player and Focus
+always fall back to a living friendly mouseover target.
+
+Right-clicking a party/raid member can set or clear the Player macro target.
+/pia focus creates the Focus variant; /pia mo and /pia mouseover create the
+Mouseover variant.
+
 FRAME SUPPORT
 -------------
 PI Alert bundles LibGetFrame-1.0 to resolve unit tokens such as party2 or
@@ -112,12 +122,21 @@ COMMANDS
 /pia            Open/close settings
 /pia mouseover  Create or update the PI Alert mouseover macro in General Macros
 /pia mo         Short alias for /pia mouseover
+/pia focus      Create or update the PI Alert focus macro in General Macros
 /pia test       Show a test request
 /pia status     Print configured-player and secure spell-tracker status
 /pia debug      Toggle debug logging
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.44-beta
+-----------
+- Added a dedicated Macros page with Player, Focus and Mouseover macro creators.
+- Added /pia focus and made /pia mo and /pia mouseover explicitly select the
+  mouseover-only macro.
+- Added mouseover fallback targeting to both Player and Focus macros.
+- Removed the macro creator button from Alerts.
 
 1.0.43-beta
 -----------

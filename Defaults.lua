@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 11
+NS.SETTINGS_REVISION = 12
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -125,6 +125,7 @@ NS.DEFAULTS = {
     },
 
     macro = {
+        mode = "MOUSEOVER", -- PLAYER, FOCUS, MOUSEOVER
         target = "",
     },
 

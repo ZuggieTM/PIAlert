@@ -44,7 +44,7 @@ end
 local PI_MACRO_NAME = "PI Alert"
 local PI_MACRO_ICON = 134400 -- INV_Misc_QuestionMark; #showtooltip supplies the live spell icon.
 
-local function NormalizeMacroTarget(target)
+function NS:NormalizeMacroTarget(target)
     if type(target) ~= "string" then return nil end
     target = strtrim(target)
     if target == "" or #target > 80 or target:find("[%[%],/%s]") then return nil end
@@ -61,22 +61,35 @@ function NS:GetUnitMacroTarget(unit)
     end
     if not name or name == "" then return nil end
     if realm and realm ~= "" then name = name .. "-" .. realm end
-    return NormalizeMacroTarget(name)
+    return self:NormalizeMacroTarget(name)
 end
 
 function NS:GetPIMacroTarget()
-    return NormalizeMacroTarget(self.db and self.db.macro and self.db.macro.target)
+    return self:NormalizeMacroTarget(self.db and self.db.macro and self.db.macro.target)
+end
+
+function NS:GetPIMacroMode()
+    local mode = self.db and self.db.macro and self.db.macro.mode
+    if mode == "PLAYER" or mode == "FOCUS" then return mode end
+    return "MOUSEOVER"
 end
 
 function NS:IsPIMacroTarget(target)
+    if self:GetPIMacroMode() ~= "PLAYER" then return false end
     local current = self:GetPIMacroTarget()
-    target = NormalizeMacroTarget(target)
+    target = self:NormalizeMacroTarget(target)
     return current and target and current:lower() == target:lower() or false
 end
 
 function NS:BuildPIMacroBody()
-    local target = self:GetPIMacroTarget()
-    local targetClause = target and ("[@" .. target .. ",exists,nodead]") or ""
+    local mode = self:GetPIMacroMode()
+    local target = mode == "PLAYER" and self:GetPIMacroTarget() or nil
+    local targetClause = ""
+    if target then
+        targetClause = "[@" .. target .. ",exists,nodead]"
+    elseif mode == "FOCUS" then
+        targetClause = "[@focus,exists,nodead]"
+    end
     return "#showtooltip Power Infusion\n/cast " .. targetClause
         .. "[@mouseover,help,exists,nodead] Power Infusion"
 end
@@ -118,18 +131,29 @@ function NS:CreateOrUpdatePIMacro()
     return true
 end
 
-function NS:SetPIMacroTarget(target)
+function NS:SetPIMacroMode(mode, target)
     if not self.db then return false end
-    self.db.macro = self.db.macro or {}
-    local normalized = NormalizeMacroTarget(target)
-    self.db.macro.target = normalized or ""
-
+    if mode ~= "PLAYER" and mode ~= "FOCUS" and mode ~= "MOUSEOVER" then return false end
     if type(InCombatLockdown) == "function" and InCombatLockdown() then
-        local action = normalized and ("set to " .. normalized) or "cleared"
-        self:Print("PI macro target " .. action .. ". Run /pia mo after combat to update the macro.")
+        self:Print("The PI Alert macro cannot be changed during combat. Try again after combat.")
         return false
     end
+    self.db.macro = self.db.macro or {}
+    local normalized = mode == "PLAYER" and self:NormalizeMacroTarget(target) or nil
+    if mode == "PLAYER" and not normalized then
+        self:Print("Enter a valid player name, optionally followed by -Realm.")
+        return false
+    end
+    self.db.macro.mode = mode
+    self.db.macro.target = normalized or ""
     return self:CreateOrUpdatePIMacro()
+end
+
+function NS:SetPIMacroTarget(target)
+    if target == nil or target == "" then
+        return self:SetPIMacroMode("MOUSEOVER")
+    end
+    return self:SetPIMacroMode("PLAYER", target)
 end
 
 function NS:IsSecretValue(value)
@@ -415,6 +439,17 @@ function NS:InitializeDatabase()
             -- supplies an empty target for existing installations.
             PIPriorityV2DB.settingsRevision = 11
         end
+        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 12 then
+            -- Existing named-target macros retain their target. Everything else
+            -- starts as the explicit mouseover macro type.
+            PIPriorityV2DB.macro = PIPriorityV2DB.macro or {}
+            if self:NormalizeMacroTarget(PIPriorityV2DB.macro.target) then
+                PIPriorityV2DB.macro.mode = "PLAYER"
+            else
+                PIPriorityV2DB.macro.mode = "MOUSEOVER"
+            end
+            PIPriorityV2DB.settingsRevision = 12
+        end
     end
     self.db = PIPriorityV2DB
 end
@@ -460,12 +495,14 @@ function NS:RegisterSlashCommands()
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to test an alert."); return end
             if NS.RequestManager then NS.RequestManager:TestRequest() end
         elseif command == "mo" or command == "mouseover" then
-            NS:CreateOrUpdatePIMacro()
+            NS:SetPIMacroMode("MOUSEOVER")
+        elseif command == "focus" then
+            NS:SetPIMacroMode("FOCUS")
         elseif command == "clear" then
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to clear active alerts."); return end
             if NS.RequestManager then NS.RequestManager:ClearAll("slash") end
         else
-            NS:Print("Commands: /pia, /pia mouseover, /pia test, /pia status, /pia debug, /pia frames, /pia clear, /pia reset")
+            NS:Print("Commands: /pia, /pia mouseover, /pia focus, /pia test, /pia status, /pia debug, /pia frames, /pia clear, /pia reset")
         end
     end
 end

@@ -316,7 +316,7 @@ function UI:CreateMainFrame()
 
     self.pages = {}
     self.navButtons = {}
-    local navItems = { "Requests", "Alerts", "Spells" }
+    local navItems = { "Requests", "Alerts", "Spells", "Macros" }
     for i, name in ipairs(navItems) do
         local btn = CreateFrame("Button", nil, sidebar)
         btn:SetPoint("TOPLEFT", 10, -18 - (i - 1) * 48)
@@ -352,6 +352,7 @@ function UI:CreateMainFrame()
     self:BuildRequestsPage()
     self:BuildSpellsPage()
     self:BuildAlertsPage()
+    self:BuildMacrosPage()
 
     table.insert(UISpecialFrames, "PIPriorityOptions")
     self:SelectPage(NS.db.ui.page or "Requests")
@@ -400,6 +401,57 @@ function UI:RefreshPage(name)
     elseif name == "Spells" then self:RefreshSpellsPage()
     elseif name == "Alerts" then self:RefreshAlertsPage()
     end
+end
+
+-- -----------------------------------------------------------------------------
+-- Macros page
+-- -----------------------------------------------------------------------------
+
+function UI:BuildMacrosPage()
+    local page = CreateFrame("Frame", nil, self.content)
+    page:SetAllPoints()
+    self.pages.Macros = page
+    CreatePageHeading(page, "Macros", "Create a General Power Infusion macro with the targeting behavior you prefer.")
+
+    local card = CreateCard(page, 632, 254)
+    card:SetPoint("TOPLEFT", 0, -72)
+
+    local title = CreateLabel(card, "Power Infusion macros", 15, C.text)
+    title:SetPoint("TOPLEFT", 16, -14)
+    local desc = CreateLabel(card, "Each option creates or updates the same PI Alert macro. Player and Focus macros fall back to mouseover.", 10, C.muted)
+    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    desc:SetPoint("RIGHT", -16, 0)
+
+    local function CreateMacroRow(labelText, description, y, callback)
+        local label = CreateLabel(card, labelText, 11, C.text)
+        label:SetPoint("TOPLEFT", 16, -y)
+        local help = CreateLabel(card, description, 10, C.muted)
+        help:SetPoint("TOPLEFT", 16, -(y + 18))
+        help:SetWidth(400)
+
+        local button = CreateButton(card, "Create macro", 140, 34, true)
+        button:SetPoint("TOPLEFT", 476, -(y + 2))
+        button:SetScript("OnClick", callback)
+    end
+
+    CreateMacroRow(
+        "Player macro",
+        "Prioritizes a named player, then casts on a valid mouseover.",
+        66,
+        function() UI:ShowPIMacroTargetDialog() end
+    )
+    CreateMacroRow(
+        "Focus macro",
+        "Prioritizes your focus, then casts on a valid mouseover.",
+        126,
+        function() NS:SetPIMacroMode("FOCUS") end
+    )
+    CreateMacroRow(
+        "Mouseover macro",
+        "Casts on a living friendly player beneath your mouse pointer.",
+        186,
+        function() NS:SetPIMacroMode("MOUSEOVER") end
+    )
 end
 
 -- -----------------------------------------------------------------------------
@@ -1463,15 +1515,11 @@ function UI:BuildAlertsPage()
     self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 16, -424)
 
     local raidHelp = CreateLabel(raidCard, "Alerts triggered by whispers fall back to the PI icon.", 10, C.muted)
-    raidHelp:SetPoint("TOPLEFT", 16, -462)
-    raidHelp:SetPoint("RIGHT", -16, 0)
-    raidHelp:SetHeight(18)
+    raidHelp:SetPoint("TOPLEFT", 16, -467)
+    raidHelp:SetPoint("RIGHT", -130, 0)
+    raidHelp:SetHeight(32)
     raidHelp:SetJustifyV("TOP")
     raidHelp:SetWordWrap(true)
-
-    local macro = CreateButton(raidCard, "Create PI macro", 136, 30, true)
-    macro:SetPoint("BOTTOMLEFT", 16, 14)
-    macro:SetScript("OnClick", function() NS:CreateOrUpdatePIMacro() end)
 
     local test = CreateButton(raidCard, "Test alert", 100, 30, false)
     test:SetPoint("BOTTOMRIGHT", -16, 14)
@@ -1772,6 +1820,38 @@ function UI:ShowPhraseDialog()
         UI:RefreshPhraseRows()
     end
     add:SetScript("OnClick", commit)
+    input:SetScript("OnEnterPressed", commit)
+    C_Timer.After(0, function() input:SetFocus() end)
+end
+
+function UI:ShowPIMacroTargetDialog()
+    local overlay, panel = self:ShowModal("Create player PI macro", 440, 210)
+
+    local label = CreateLabel(panel, "Player name", 11, C.muted)
+    label:SetPoint("TOPLEFT", 18, -58)
+    local input = CreateEditBox(panel, 404, 34, "Wickii or Wickii-Realm")
+    input:SetPoint("TOPLEFT", 18, -82)
+
+    local errorText = CreateLabel(panel, "", 10, C.danger)
+    errorText:SetPoint("TOPLEFT", input, "BOTTOMLEFT", 0, -8)
+
+    local cancel = CreateButton(panel, "Cancel", 88, 32, false)
+    cancel:SetPoint("BOTTOMRIGHT", -18, 16)
+    cancel:SetScript("OnClick", function() overlay:Hide() end)
+    local create = CreateButton(panel, "Create macro", 112, 32, true)
+    create:SetPoint("RIGHT", cancel, "LEFT", -8, 0)
+
+    local function commit()
+        local target = NS:NormalizeMacroTarget(input:GetText() or "")
+        if not target then
+            errorText:SetText("Enter a valid player name, optionally followed by -Realm.")
+            return
+        end
+        if NS:SetPIMacroMode("PLAYER", target) then
+            overlay:Hide()
+        end
+    end
+    create:SetScript("OnClick", commit)
     input:SetScript("OnEnterPressed", commit)
     C_Timer.After(0, function() input:SetFocus() end)
 end
