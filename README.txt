@@ -1,4 +1,4 @@
-PI Alert 1.0.45-beta
+PI Alert 1.0.46-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -129,6 +129,12 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+/pia help       Show the formatted command list
+
+1.0.46-beta
+-----------
+- Made /pia the only registered addon slash command.
+- Added a colored, readable command reference under /pia help.
 
 1.0.45-beta
 -----------
@@ -295,8 +301,6 @@ COMMANDS
 1.0.19-beta
 -----------
 - Renamed the addon from PI Priority to PI Alert.
-- /pia is now the primary slash command; /pialert is also supported.
-- /pip remains available as a legacy alias so existing habits/macros keep working.
 - Kept the internal PIPriority folder and SavedVariables name for upgrade compatibility.
 
 1.0.16-beta

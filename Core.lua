@@ -465,16 +465,38 @@ function NS:InitializeModules()
     if self.UI and self.UI.Init then self.UI:Init() end
 end
 
+function NS:PrintSlashHelp()
+    local headerColor = "|cff35e6b2"
+    local commandColor = "|cff55dfff"
+    local separatorColor = "|cff82949e"
+    local textColor = "|ffe8f0f3"
+
+    local function AddLine(commandText, description)
+        DEFAULT_CHAT_FRAME:AddMessage(commandColor .. commandText .. "|r "
+            .. separatorColor .. "-|r " .. textColor .. description .. "|r")
+    end
+
+    DEFAULT_CHAT_FRAME:AddMessage(headerColor .. "PI Alert available commands:|r")
+    AddLine("/pia", "Open or close settings")
+    AddLine("/pia mo or /pia mouseover", "Create the mouseover PI macro")
+    AddLine("/pia focus", "Create the focus PI macro with mouseover fallback")
+    AddLine("/pia test", "Preview your configured alert")
+    AddLine("/pia clear", "Clear active whisper requests")
+    AddLine("/pia status", "Show secure spell-tracker status")
+    AddLine("/pia frames", "Show resolved party and raid frames")
+    AddLine("/pia debug", "Toggle diagnostic logging")
+    AddLine("/pia reset", "Reset PI Alert settings")
+    AddLine("/pia help", "Show this command list")
+end
+
 function NS:RegisterSlashCommands()
     if self.slashRegistered then return end
     self.slashRegistered = true
 
     SLASH_PIALERT1 = "/pia"
-    SLASH_PIALERT2 = "/pialert"
-    SLASH_PIALERT3 = "/pip" -- Legacy alias from PI Priority.
     SlashCmdList.PIALERT = function(input)
         input = strtrim(input or "")
-        local command, rest = input:match("^(%S+)%s*(.-)$")
+        local command = input:match("^(%S+)")
         command = command and command:lower() or ""
 
         if command == "" or command == "config" or command == "options" then
@@ -498,11 +520,14 @@ function NS:RegisterSlashCommands()
             NS:SetPIMacroMode("MOUSEOVER")
         elseif command == "focus" then
             NS:SetPIMacroMode("FOCUS")
+        elseif command == "help" or command == "commands" then
+            NS:PrintSlashHelp()
         elseif command == "clear" then
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to clear active alerts."); return end
             if NS.RequestManager then NS.RequestManager:ClearAll("slash") end
         else
-            NS:Print("Commands: /pia, /pia mouseover, /pia focus, /pia test, /pia status, /pia debug, /pia frames, /pia clear, /pia reset")
+            NS:Print("Unknown command '" .. command .. "'.")
+            NS:PrintSlashHelp()
         end
     end
 end
