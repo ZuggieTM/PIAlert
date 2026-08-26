@@ -891,7 +891,7 @@ function Detector:ResolveRaidFrameForUnit(unit)
 end
 
 function Detector:RefreshAuraState(unit)
-    if not unit or unit == "player" or not UnitExists(unit) then return end
+    if not unit or not UnitExists(unit) then return end
     local state = self.auraStates[unit]
 
     if not self:AllowsSource("SPELL") then
@@ -939,7 +939,7 @@ function Detector:RefreshAuraState(unit)
         -- Never leave a previously valid token glowing on a frame we can no
         -- longer confirm. A resolver callback will enable it again later.
         if state then self:SetAuraStateEnabled(state, false) end
-        NS:Debug("Secure ally tracker is waiting for a raid/party frame for " .. tostring(UnitName(unit) or unit))
+        NS:Debug("Secure aura tracker is waiting for a raid/party frame for " .. tostring(UnitName(unit) or unit))
         return
     end
 
@@ -989,11 +989,9 @@ function Detector:RefreshAuraDetectors()
 
     local present = {}
     NS:ForEachGroupUnit(function(unit)
-        if not UnitIsUnit(unit, "player") then
-            present[unit] = true
-            self:RefreshAuraState(unit)
-        end
-    end, false)
+        present[unit] = true
+        self:RefreshAuraState(unit)
+    end, true)
 
     for unit, state in pairs(self.auraStates or {}) do
         if not present[unit] then
@@ -1051,8 +1049,9 @@ end
 function Detector:OnSpellcast(unit, castGUID, spellID, castBarID)
     if not NS.db or not NS:IsActive() then return end
 
-    -- The player's own spell ID remains public. We use it to clear everything
-    -- immediately after PI and to keep convenient self-tests such as Fade.
+    -- The player's own spell ID remains public. PI still needs an immediate
+    -- readiness update; every other tracked self aura is handled by the same
+    -- secure CustomAuraContainer path used for party and raid members.
     if not NS:IsSecretValue(unit) and unit == "player" and not NS:IsSecretValue(spellID) then
         local publicSpellID = tonumber(spellID)
         if publicSpellID == NS.PI_SPELL_ID then
@@ -1060,15 +1059,6 @@ function Detector:OnSpellcast(unit, castGUID, spellID, castBarID)
             NS.RequestManager:ClearAll("Power Infusion cast")
             self:ApplyPICooldownAlertPolicy()
             return
-        end
-
-        if self:AllowsSource("SPELL") and self:IsSpellTracked(publicSpellID) then
-            local allowed, groupUnit = self:IsRequesterAllowed("player", UnitName("player"))
-            if allowed and groupUnit then
-                local spellName = NS:GetSpellName(publicSpellID)
-                NS:Debug(string.format("Tracked self cast: %s (%d)", tostring(spellName), publicSpellID or 0))
-                NS.RequestManager:Receive(UnitGUID(groupUnit), UnitName(groupUnit), groupUnit, "SPELL", publicSpellID, nil)
-            end
         end
         return
     end
