@@ -1,4 +1,4 @@
-PI Alert 1.0.28-beta
+PI Alert 1.0.36-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -21,8 +21,9 @@ models because Blizzard keeps allied aura transitions secret to normal addon Lua
 
 WHISPER CONFIGURATION
 ---------------------
-Request Duration applies to whisper requests only. Matching whispers are ignored
-while Power Infusion is on cooldown.
+Request Duration applies to whisper requests only. By default matching whispers
+are ignored while Power Infusion is on cooldown. Alerts > Whisper settings can
+allow accepted whispers to trigger visuals and sound during PI's cooldown.
 
 - Request Duration: once active, the whisper request remains visible for this
   many seconds, or until PI is cast.
@@ -38,9 +39,9 @@ track for party/raid units; Blizzard securely controls when the visual is shown.
 
 Spell-triggered visuals:
 - follow the tracked buff while it is active;
-- are completely hidden while Power Infusion itself is on cooldown;
+- follow the selected Always Track or PI Ready Only alert policy;
 - ignore the normal global cooldown when checking whether PI is ready;
-- disappear immediately when PI is cast.
+- in PI Ready Only mode, disappear immediately when PI is cast.
 
 Because Blizzard does not expose a normal Lua event saying exactly when the
 restricted allied buff appeared, Whisper Request Duration does not apply to
@@ -64,9 +65,10 @@ ALERTS
 ------
 Each alert type can be enabled independently:
 - Glow on raid/party frame
-- Power Infusion icon on raid/party frame, with a secure swipe showing the
-  tracked buff's remaining duration
-- Movable Power Infusion aura icon
+- Power Infusion or tracked spell icon on raid/party frames. Whispers always
+  fall back to the Power Infusion icon because they have no spell aura.
+- Optional secure cooldown swipe showing the tracked buff's remaining duration
+- Movable Power Infusion aura icon with configurable size
 - Sound for accepted whisper requests only
 
 Spell alert timing has two modes:
@@ -115,6 +117,13 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.36-beta
+-----------
+- Reorganized Alerts into Raidframe, Aura icon and Whisper settings cards.
+- Added a raidframe icon choice between Power Infusion and the tracked spell.
+- Added independent cooldown-swipe and aura-icon-size controls.
+- Added an option to accept and alert for whispers while PI is on cooldown.
 
 1.0.35-beta
 -----------

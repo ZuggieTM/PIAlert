@@ -38,7 +38,10 @@ function RM:Receive(guid, name, unit, source, spellID, message)
     -- needs a yes/no readiness state here, which Detector maintains from the
     -- public NeverSecret cooldown flags. There is intentionally no grace-period
     -- math anymore.
-    if NS.Detector and not NS.Detector:IsPIReady() then
+    local allowWhisperOnCooldown = source == "WHISPER"
+        and NS.db.alerts
+        and NS.db.alerts.whisperOnPICooldown == true
+    if NS.Detector and not NS.Detector:IsPIReady() and not allowWhisperOnCooldown then
         NS:Debug("Ignored " .. tostring(source or "request") .. " from " .. tostring(NS:DisplayBaseName(name or "Unknown")) .. "; PI is not ready.")
         return
     end

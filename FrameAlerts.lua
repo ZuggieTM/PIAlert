@@ -481,6 +481,11 @@ function FA:ApplyRequestVisual(request)
     end
 
     if NS.db.alerts.frameIcon then
+        local iconSpellID = NS.PI_SPELL_ID
+        if NS.db.alerts.frameIconType == "SPELL" and request.source == "SPELL" and request.spellID then
+            iconSpellID = request.spellID
+        end
+        visual.icon:SetTexture(NS:GetSpellIcon(iconSpellID))
         visual.iconFrame:Show()
     else
         visual.iconFrame:Hide()

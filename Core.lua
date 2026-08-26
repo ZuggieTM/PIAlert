@@ -305,6 +305,12 @@ function NS:InitializeDatabase()
             PIPriorityV2DB.alerts.spellAlertTiming = "PI_READY"
             PIPriorityV2DB.settingsRevision = 8
         end
+        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 9 then
+            -- Alert cards gained explicit raidframe icon and whisper cooldown
+            -- behavior. MergeDefaults supplies the compatibility-preserving
+            -- values for existing users.
+            PIPriorityV2DB.settingsRevision = 9
+        end
     end
     self.db = PIPriorityV2DB
 end
