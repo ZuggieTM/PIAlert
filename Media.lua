@@ -12,6 +12,26 @@ Media.addonSounds = {
         name = "PI Alert - Infusion",
         path = MEDIA_PATH .. "pi-request.wav",
     },
+    {
+        key = "addon:pi-single-note",
+        name = "PI Alert - Single Note",
+        path = MEDIA_PATH .. "pi-pulse.wav",
+    },
+    {
+        key = "addon:pi-arcane-spark",
+        name = "PI Alert - Arcane Spark",
+        path = MEDIA_PATH .. "pi-arcane-spark.wav",
+    },
+    {
+        key = "addon:pi-radiance",
+        name = "PI Alert - Radiance",
+        path = MEDIA_PATH .. "pi-radiance.wav",
+    },
+    {
+        key = "addon:pi-voice",
+        name = "PI Alert - Voice",
+        path = MEDIA_PATH .. "pi-voice.wav",
+    },
 }
 
 Media.builtinSounds = {
