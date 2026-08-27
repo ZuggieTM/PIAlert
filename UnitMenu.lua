@@ -86,24 +86,17 @@ function UnitMenu:AddEntry(rootDescription, contextData)
     end
 
     if macroTarget then
-        local macroEntry = rootDescription:CreateCheckbox(
-            "PI Alert macro target",
+        local macroEntry = rootDescription:CreateButton(
+            "Set as PI Alert macro target",
             function()
-                return NS:IsPIMacroTarget(macroTarget)
-            end,
-            function()
-                if NS:IsPIMacroTarget(macroTarget) then
-                    NS:SetPIMacroTarget(nil)
-                else
-                    NS:SetPIMacroTarget(macroTarget)
-                end
+                NS:SetPIMacroTarget(macroTarget)
             end
         )
 
         if macroEntry and macroEntry.SetTitleAndTextTooltip then
             macroEntry:SetTitleAndTextTooltip(
-                "PI Alert macro target",
-                "Set this group member as the named target in the General PI Alert macro. Toggle it off to return to mouseover only."
+                "Set as PI Alert macro target",
+                "Set this group member as the named target in the General PI Alert macro. The macro retains mouseover as its fallback."
             )
         end
     end
