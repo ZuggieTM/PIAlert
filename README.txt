@@ -1,4 +1,4 @@
-PI Alert 1.0.48-beta
+PI Alert 1.0.49-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -124,12 +124,13 @@ COMMANDS
 /pia mo         Short alias for /pia mouseover
 /pia focus      Create or update the PI Alert focus macro in General Macros
 /pia test       Show a test request
-/pia status     Print configured-player and secure spell-tracker status
-/pia debug      Toggle debug logging
-/pia frames     Print unit-token -> raid/party frame mappings
-/pia clear      Clear all requests
 /pia reset      Reset settings
 /pia help       Show the formatted command list
+
+1.0.49-beta
+-----------
+- Simplified /pia help by hiding the clear, status, frames and debug
+  troubleshooting commands. The commands remain available when needed.
 
 1.0.48-beta
 -----------
