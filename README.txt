@@ -1,4 +1,4 @@
-PI Alert 1.0.50-beta
+PI Alert 1.0.0
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -126,6 +126,13 @@ COMMANDS
 /pia test       Show a test request
 /pia reset      Reset settings
 /pia help       Show the formatted command list
+
+1.0.0
+-----
+- First stable release of PI Alert.
+- Finalized the curated spell list and specialization notes.
+- Added complete installation, configuration and usage documentation in
+  README.md.
 
 1.0.50-beta
 -----------
