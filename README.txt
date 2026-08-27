@@ -1,4 +1,4 @@
-PI Alert 1.0.47-beta
+PI Alert 1.0.48-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -130,6 +130,11 @@ COMMANDS
 /pia clear      Clear all requests
 /pia reset      Reset settings
 /pia help       Show the formatted command list
+
+1.0.48-beta
+-----------
+- Fixed /pia help color rendering by using Blizzard's native color wrapper.
+- Swapped the help colors so the heading is blue and commands are green.
 
 1.0.47-beta
 -----------

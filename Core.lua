@@ -466,17 +466,21 @@ function NS:InitializeModules()
 end
 
 function NS:PrintSlashHelp()
-    local headerColor = "|cff35e6b2"
-    local commandColor = "|cff55dfff"
-    local separatorColor = "|cff82949e"
-    local textColor = "|ffe8f0f3"
+    local headerColor = CreateColor(0.333, 0.875, 1.000, 1)
+    local commandColor = CreateColor(0.208, 0.902, 0.698, 1)
+    local separatorColor = CreateColor(0.510, 0.580, 0.620, 1)
+    local textColor = CreateColor(0.910, 0.941, 0.953, 1)
 
-    local function AddLine(commandText, description)
-        DEFAULT_CHAT_FRAME:AddMessage(commandColor .. commandText .. "|r "
-            .. separatorColor .. "-|r " .. textColor .. description .. "|r")
+    local function Colorize(color, value)
+        return color:WrapTextInColorCode(value)
     end
 
-    DEFAULT_CHAT_FRAME:AddMessage(headerColor .. "PI Alert available commands:|r")
+    local function AddLine(commandText, description)
+        DEFAULT_CHAT_FRAME:AddMessage(Colorize(commandColor, commandText) .. " "
+            .. Colorize(separatorColor, "-") .. " " .. Colorize(textColor, description))
+    end
+
+    DEFAULT_CHAT_FRAME:AddMessage(Colorize(headerColor, "PI Alert available commands:"))
     AddLine("/pia", "Open or close settings")
     AddLine("/pia mo or /pia mouseover", "Create the mouseover PI macro")
     AddLine("/pia focus", "Create the focus PI macro with mouseover fallback")
