@@ -17,6 +17,8 @@ local C = {
     warning = {0.95, 0.72, 0.26, 1},
 }
 
+local SOUND_PREVIEW_ICON = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\sound-preview.tga"
+
 local function SetBackdrop(frame, bg, border)
     frame:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8X8",
@@ -60,6 +62,28 @@ local function CreateButton(parent, text, width, height, accent)
     end
 
     return btn
+end
+
+local function StyleSoundPreviewButton(button)
+    button:SetLabel("")
+
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(16, 16)
+    icon:SetPoint("CENTER")
+    icon:SetTexture(SOUND_PREVIEW_ICON)
+    icon:SetVertexColor(unpack(C.accent))
+    button.previewIcon = icon
+
+    button:HookScript("OnEnter", function(self)
+        icon:SetVertexColor(unpack(C.text))
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText("Preview sound", C.text[1], C.text[2], C.text[3])
+        GameTooltip:Show()
+    end)
+    button:HookScript("OnLeave", function(self)
+        icon:SetVertexColor(unpack(C.accent))
+        if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+    end)
 end
 
 local function CreateEditBox(parent, width, height, placeholder)
@@ -1656,7 +1680,8 @@ function UI:CreateSoundPicker(parent, width)
     text:SetPoint("RIGHT", -62, 0)
     button.valueText = text
 
-    local preview = CreateButton(button, ">", 30, 26, false)
+    local preview = CreateButton(button, "", 30, 26, false)
+    StyleSoundPreviewButton(preview)
     preview:SetPoint("RIGHT", -6, 0)
     preview:SetScript("OnClick", function()
         if NS.Media then NS.Media:Play(NS.db.alerts.soundKey) end
@@ -1707,7 +1732,8 @@ function UI:ShowSoundPopup(anchor)
         name:SetPoint("LEFT", 8, 0)
         name:SetPoint("RIGHT", -44, 0)
         row.name = name
-        local play = CreateButton(row, ">", 28, 24, false)
+        local play = CreateButton(row, "", 28, 24, false)
+        StyleSoundPreviewButton(play)
         play:SetPoint("RIGHT", -3, 0)
         row.play = play
         row:SetScript("OnEnter", function() bg:SetColorTexture(1, 1, 1, 0.05) end)
