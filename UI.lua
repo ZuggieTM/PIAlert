@@ -64,6 +64,42 @@ local function CreateButton(parent, text, width, height, accent)
     return btn
 end
 
+local function GetSoundPreviewTooltip()
+    if UI.soundPreviewTooltip then return UI.soundPreviewTooltip end
+
+    local tooltip = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    tooltip:SetFrameStrata("TOOLTIP")
+    tooltip:SetFrameLevel(1000)
+    tooltip:SetClampedToScreen(true)
+    SetBackdrop(tooltip, C.panel2, C.border)
+
+    local label = CreateLabel(tooltip, "Preview sound", 11, C.text)
+    label:SetPoint("CENTER")
+    tooltip:SetSize(math.ceil(label:GetStringWidth()) + 20, 28)
+    tooltip.label = label
+    tooltip:Hide()
+
+    UI.soundPreviewTooltip = tooltip
+    return tooltip
+end
+
+local function ShowSoundPreviewTooltip(owner)
+    local tooltip = GetSoundPreviewTooltip()
+    tooltip.owner = owner
+    tooltip:ClearAllPoints()
+    tooltip:SetPoint("BOTTOMRIGHT", owner, "TOPRIGHT", 0, 5)
+    tooltip:SetFrameLevel(math.max(1000, owner:GetFrameLevel() + 20))
+    tooltip:Show()
+end
+
+local function HideSoundPreviewTooltip(owner)
+    local tooltip = UI.soundPreviewTooltip
+    if tooltip and tooltip.owner == owner then
+        tooltip.owner = nil
+        tooltip:Hide()
+    end
+end
+
 local function StyleSoundPreviewButton(button)
     button:SetLabel("")
 
@@ -76,13 +112,11 @@ local function StyleSoundPreviewButton(button)
 
     button:HookScript("OnEnter", function(self)
         icon:SetVertexColor(unpack(C.text))
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText("Preview sound", C.text[1], C.text[2], C.text[3])
-        GameTooltip:Show()
+        ShowSoundPreviewTooltip(self)
     end)
     button:HookScript("OnLeave", function(self)
         icon:SetVertexColor(unpack(C.accent))
-        if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+        HideSoundPreviewTooltip(self)
     end)
 end
 
