@@ -3,7 +3,7 @@ const sharp = require("sharp");
 
 const ROOT = __dirname;
 const OUT = path.join(ROOT, "gallery");
-const BACKGROUND = path.join(ROOT, "assets", "gallery-background.png");
+const BACKGROUND = path.join(ROOT, "assets", "gallery-background-frameless.png");
 const LOGO = path.join(ROOT, "assets", "pialert-mark.png");
 const SCREENSHOTS = "C:\\Program Files (x86)\\World of Warcraft\\_retail_\\Screenshots";
 
@@ -25,7 +25,7 @@ const slides = [
     output: "01-pialert-hero.jpg",
     source: "WoWScrnShot_082726_170152.jpg",
     crop: { left: 1600, top: 210, width: 1856, height: 1160 },
-    shot: { x: 745, y: 170, width: 1240, height: 775 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "POWER INFUSION ASSISTANT",
     title: ["Give PI to the", "right player."],
     body: [
@@ -39,7 +39,7 @@ const slides = [
     output: "02-alerts.jpg",
     source: "WoWScrnShot_082726_170024.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 745, y: 170, width: 1240, height: 775 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "CUSTOM ALERTS",
     title: ["Never miss", "a PI request."],
     body: [
@@ -52,7 +52,7 @@ const slides = [
     output: "03-requests.jpg",
     source: "WoWScrnShot_082726_170021.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 745, y: 170, width: 1240, height: 775 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "REQUEST CONTROL",
     title: ["You decide who", "can ask for PI."],
     body: [
@@ -65,7 +65,7 @@ const slides = [
     output: "04-spells.jpg",
     source: "WoWScrnShot_082726_170044.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 745, y: 170, width: 1240, height: 775 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "COOLDOWN TRACKING",
     title: ["Track the", "cooldowns that", "matter."],
     body: [
@@ -78,7 +78,7 @@ const slides = [
     output: "05-macros.jpg",
     source: "WoWScrnShot_082726_170047.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 745, y: 170, width: 1240, height: 775 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "BUILT-IN MACROS",
     title: ["One click to the", "right target."],
     body: [
@@ -157,6 +157,7 @@ function overlaySvg(slide) {
         </filter>
       </defs>
       <rect x="0" y="0" width="900" height="1152" fill="url(#leftShade)"/>
+      <rect x="${slide.shot.x - 5}" y="${slide.shot.y - 5}" width="${slide.shot.width + 10}" height="${slide.shot.height + 10}" rx="17" fill="none" stroke="#2bd3b2" stroke-width="3" opacity="0.95"/>
       <rect x="118" y="${accentY}" width="94" height="5" rx="2.5" fill="${COLORS.teal}"/>
       <text x="118" y="244" fill="${COLORS.teal}" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="4">${escapeXml(slide.eyebrow)}</text>
       ${textLines(slide.title, 112, titleStart, { size: slide.eyebrow === "COOLDOWN TRACKING" ? 68 : 76, gap: titleGap, weight: 650, family: "Georgia, serif", spacing: -2 })}
@@ -167,54 +168,6 @@ function overlaySvg(slide) {
       <text x="118" y="1110" fill="${COLORS.muted}" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="600" letter-spacing="2">PIALERT  •  /PIA</text>
     </svg>
   `);
-}
-
-let frameOverlayPromise;
-
-function frameOverlayBuffer() {
-  if (!frameOverlayPromise) {
-    frameOverlayPromise = (async () => {
-      const source = await sharp(BACKGROUND)
-        .resize(WIDTH, HEIGHT, { fit: "cover" })
-        .ensureAlpha()
-        .raw()
-        .toBuffer({ resolveWithObject: true });
-      const overlay = Buffer.alloc(source.data.length);
-
-      for (let y = 0; y < HEIGHT; y += 1) {
-        for (let x = 0; x < WIDTH; x += 1) {
-          const inFrameBounds = x >= 690 && x <= 2015 && y >= 130 && y <= 995;
-          const inFrameBand = inFrameBounds && (
-            y <= 198 ||
-            y >= 925 ||
-            x <= 780 ||
-            x >= 1940 ||
-            (x >= 1315 && x <= 1415 && y <= 220) ||
-            (x >= 1315 && x <= 1415 && y >= 905)
-          );
-          if (!inFrameBand) continue;
-
-          const index = (y * WIDTH + x) * 4;
-          const red = source.data[index];
-          const green = source.data[index + 1];
-          const blue = source.data[index + 2];
-          const peak = Math.max(red, green, blue);
-          const chroma = peak - Math.min(red, green, blue);
-          const alpha = Math.max(0, Math.min(255, (peak - 48) * 12 + chroma * 3));
-
-          overlay[index] = red;
-          overlay[index + 1] = green;
-          overlay[index + 2] = blue;
-          overlay[index + 3] = alpha;
-        }
-      }
-
-      return sharp(overlay, {
-        raw: { width: WIDTH, height: HEIGHT, channels: 4 },
-      }).png().toBuffer();
-    })();
-  }
-  return frameOverlayPromise;
 }
 
 async function screenshotBuffer(slide) {
@@ -229,12 +182,12 @@ async function screenshotBuffer(slide) {
     .sharpen({ sigma: 0.8 })
     .png()
     .toBuffer();
-  return image;
+  const mask = Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="${width}" height="${height}" rx="13" fill="white"/></svg>`);
+  return sharp(image).composite([{ input: mask, blend: "dest-in" }]).png().toBuffer();
 }
 
 async function buildSlide(slide) {
   const screenshot = await screenshotBuffer(slide);
-  const frameOverlay = await frameOverlayBuffer();
   const logo = await sharp(LOGO)
     .resize(126, 126, { fit: "cover" })
     .png()
@@ -245,7 +198,6 @@ async function buildSlide(slide) {
     .modulate({ brightness: 0.84, saturation: 0.9 })
     .composite([
       { input: screenshot, left: slide.shot.x, top: slide.shot.y },
-      { input: frameOverlay, left: 0, top: 0 },
       { input: overlaySvg(slide), left: 0, top: 0 },
       { input: logo, left: 112, top: 76, blend: "screen" },
     ])
