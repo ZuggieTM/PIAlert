@@ -32,6 +32,11 @@ Media.addonSounds = {
         name = "PI Alert - Voice",
         path = MEDIA_PATH .. "pi-voice.wav",
     },
+    {
+        key = "addon:pi-voice-soft",
+        name = "PI Alert - Soft Voice",
+        path = MEDIA_PATH .. "pi-voice-soft.wav",
+    },
 }
 
 Media.builtinSounds = {
