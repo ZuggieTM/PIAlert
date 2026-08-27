@@ -4,7 +4,7 @@ local Detector = {}
 NS.Detector = Detector
 
 local AURA_FILTER = "HELPFUL"
-local SECURE_MEDIA = "Interface\\AddOns\\PIPriority\\Media\\"
+local SECURE_MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\"
 local SECURE_DASH_H = SECURE_MEDIA .. "secure-dash-h.tga"
 local SECURE_DASH_V = SECURE_MEDIA .. "secure-dash-v.tga"
 

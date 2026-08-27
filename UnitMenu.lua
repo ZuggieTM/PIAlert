@@ -47,6 +47,7 @@ function UnitMenu:AddEntry(rootDescription, contextData)
 
     local name = UnitName(unit)
     local baseName = NS:DisplayBaseName(name)
+    local macroTarget = NS:GetUnitMacroTarget(unit)
     if not baseName or baseName == "" then return end
 
     rootDescription:QueueDivider()
@@ -82,6 +83,29 @@ function UnitMenu:AddEntry(rootDescription, contextData)
             "PI Alert requester",
             "Add or remove this group member from the Specific Players requester list."
         )
+    end
+
+    if macroTarget then
+        local macroEntry = rootDescription:CreateCheckbox(
+            "PI Alert macro target",
+            function()
+                return NS:IsPIMacroTarget(macroTarget)
+            end,
+            function()
+                if NS:IsPIMacroTarget(macroTarget) then
+                    NS:SetPIMacroTarget(nil)
+                else
+                    NS:SetPIMacroTarget(macroTarget)
+                end
+            end
+        )
+
+        if macroEntry and macroEntry.SetTitleAndTextTooltip then
+            macroEntry:SetTitleAndTextTooltip(
+                "PI Alert macro target",
+                "Set this group member as the named target in the General PI Alert macro. Toggle it off to return to mouseover only."
+            )
+        end
     end
 end
 

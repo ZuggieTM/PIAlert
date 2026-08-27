@@ -1,11 +1,11 @@
-PI Alert 1.0.40-beta
+PI Alert 1.0.50-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
 
 INSTALL
 -------
-1. Extract the PIPriority folder into:
+1. Extract the PIAlert folder into:
    World of Warcraft/_retail_/Interface/AddOns/
 2. Start/reload WoW.
 3. Type /pia to open settings.
@@ -101,6 +101,16 @@ Only accepted whisper requests trigger the selected sound during normal use;
 alerts only and never play a sound. Whisper sounds have a fixed three-second
 anti-spam window.
 
+MACROS
+------
+The Macros page creates or updates one account-wide PI Alert macro under General
+Macros. Player, Focus and Mouseover variants are available. Player and Focus
+always fall back to a living friendly mouseover target.
+
+Right-clicking a party/raid member can set or clear the Player macro target.
+/pia focus creates the Focus variant; /pia mo and /pia mouseover create the
+Mouseover variant.
+
 FRAME SUPPORT
 -------------
 PI Alert bundles LibGetFrame-1.0 to resolve unit tokens such as party2 or
@@ -110,12 +120,71 @@ popular frame addons including Grid/Grid2, EllesmereUI, Cell, ElvUI and VuhDo.
 COMMANDS
 --------
 /pia            Open/close settings
+/pia mouseover  Create or update the PI Alert mouseover macro in General Macros
+/pia mo         Short alias for /pia mouseover
+/pia focus      Create or update the PI Alert focus macro in General Macros
 /pia test       Show a test request
-/pia status     Print configured-player and secure spell-tracker status
-/pia debug      Toggle debug logging
-/pia frames     Print unit-token -> raid/party frame mappings
-/pia clear      Clear all requests
 /pia reset      Reset settings
+/pia help       Show the formatted command list
+
+1.0.50-beta
+-----------
+- Updated the preset spell list and aura IDs for cooldowns that create a
+  trackable player buff.
+- Added an explanatory note beneath talent-dependent spells so users can see
+  why those alerts require a particular talent.
+
+1.0.49-beta
+-----------
+- Simplified /pia help by hiding the clear, status, frames and debug
+  troubleshooting commands. The commands remain available when needed.
+
+1.0.48-beta
+-----------
+- Fixed /pia help color rendering by using Blizzard's native color wrapper.
+- Swapped the help colors so the heading is blue and commands are green.
+
+1.0.47-beta
+-----------
+- Completed the internal PI Alert rename across the addon folder, TOC, saved
+  database, frame names, media paths and test identifiers.
+- Removed two obsolete Lua files that were no longer loaded by the addon.
+- Renamed the saved database to PIAlertDB as part of the completed addon rename.
+
+1.0.46-beta
+-----------
+- Made /pia the only registered addon slash command.
+- Added a colored, readable command reference under /pia help.
+
+1.0.45-beta
+-----------
+- Added the friendly-unit condition to Player and Focus macro targets so an
+  invalid hostile target falls through to the mouseover fallback.
+
+1.0.44-beta
+-----------
+- Added a dedicated Macros page with Player, Focus and Mouseover macro creators.
+- Added /pia focus and made /pia mo and /pia mouseover explicitly select the
+  mouseover-only macro.
+- Added mouseover fallback targeting to both Player and Focus macros.
+- Removed the macro creator button from Alerts.
+
+1.0.43-beta
+-----------
+- Added a right-click PI Alert macro target option beneath the Specific Players
+  requester toggle.
+- Named macro targets are saved and placed before the mouseover fallback; toggling
+  the selected target off returns the macro to mouseover-only behavior.
+
+1.0.42-beta
+-----------
+- Added a Create PI macro button that creates or updates an account-wide
+  PI Alert mouseover macro under General Macros.
+- Added /pia mo and /pia mouseover as aliases for the same macro action.
+
+1.0.41-beta
+-----------
+- Moved Alerts before Spells in the settings navigation.
 
 1.0.40-beta
 -----------
@@ -249,13 +318,6 @@ COMMANDS
 - Allied aura sound registrations are now removed through the matching API.
 - Kept the secret-safe Power Infusion cooldown readiness logic from 1.0.22.
 
-1.0.19-beta
------------
-- Renamed the addon from PI Priority to PI Alert.
-- /pia is now the primary slash command; /pialert is also supported.
-- /pip remains available as a legacy alias so existing habits/macros keep working.
-- Kept the internal PIPriority folder and SavedVariables name for upgrade compatibility.
-
 1.0.16-beta
 -----------
 - Added a Specific Players fallback dropdown: No fallback, Focus, or Everyone in Group.
@@ -281,4 +343,4 @@ COMMANDS
 
 Right-click group members
 -------------------------
-While PI Alert is active, right-click a party/raid member and toggle "PI Alert requester" to add or remove them from the Specific Players list.
+While PI Alert is active, right-click a party/raid member and toggle "PI Alert requester" to add or remove them from the Specific Players list. The option directly below it sets that player as the named target in the General PI Alert macro while retaining mouseover as the fallback.

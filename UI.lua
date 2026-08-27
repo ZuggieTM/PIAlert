@@ -252,7 +252,7 @@ function UI:CreateDropdown(parent, width, options, getValue, setValue)
 end
 
 function UI:CreateMainFrame()
-    local frame = CreateFrame("Frame", "PIPriorityOptions", UIParent, "BackdropTemplate")
+    local frame = CreateFrame("Frame", "PIAlertOptions", UIParent, "BackdropTemplate")
     self.frame = frame
     frame:SetSize(850, 700)
     frame:SetFrameStrata("DIALOG")
@@ -316,7 +316,7 @@ function UI:CreateMainFrame()
 
     self.pages = {}
     self.navButtons = {}
-    local navItems = { "Requests", "Spells", "Alerts" }
+    local navItems = { "Requests", "Alerts", "Spells", "Macros" }
     for i, name in ipairs(navItems) do
         local btn = CreateFrame("Button", nil, sidebar)
         btn:SetPoint("TOPLEFT", 10, -18 - (i - 1) * 48)
@@ -352,8 +352,9 @@ function UI:CreateMainFrame()
     self:BuildRequestsPage()
     self:BuildSpellsPage()
     self:BuildAlertsPage()
+    self:BuildMacrosPage()
 
-    table.insert(UISpecialFrames, "PIPriorityOptions")
+    table.insert(UISpecialFrames, "PIAlertOptions")
     self:SelectPage(NS.db.ui.page or "Requests")
     frame:Hide()
 end
@@ -400,6 +401,57 @@ function UI:RefreshPage(name)
     elseif name == "Spells" then self:RefreshSpellsPage()
     elseif name == "Alerts" then self:RefreshAlertsPage()
     end
+end
+
+-- -----------------------------------------------------------------------------
+-- Macros page
+-- -----------------------------------------------------------------------------
+
+function UI:BuildMacrosPage()
+    local page = CreateFrame("Frame", nil, self.content)
+    page:SetAllPoints()
+    self.pages.Macros = page
+    CreatePageHeading(page, "Macros", "Create a General Power Infusion macro with the targeting behavior you prefer.")
+
+    local card = CreateCard(page, 632, 254)
+    card:SetPoint("TOPLEFT", 0, -72)
+
+    local title = CreateLabel(card, "Power Infusion macros", 15, C.text)
+    title:SetPoint("TOPLEFT", 16, -14)
+    local desc = CreateLabel(card, "Each option creates or updates the same PI Alert macro. Player and Focus macros fall back to mouseover.", 10, C.muted)
+    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    desc:SetPoint("RIGHT", -16, 0)
+
+    local function CreateMacroRow(labelText, description, y, callback)
+        local label = CreateLabel(card, labelText, 11, C.text)
+        label:SetPoint("TOPLEFT", 16, -y)
+        local help = CreateLabel(card, description, 10, C.muted)
+        help:SetPoint("TOPLEFT", 16, -(y + 18))
+        help:SetWidth(400)
+
+        local button = CreateButton(card, "Create macro", 140, 34, true)
+        button:SetPoint("TOPLEFT", 476, -(y + 2))
+        button:SetScript("OnClick", callback)
+    end
+
+    CreateMacroRow(
+        "Player macro",
+        "Prioritizes a named player, then casts on a valid mouseover.",
+        66,
+        function() UI:ShowPIMacroTargetDialog() end
+    )
+    CreateMacroRow(
+        "Focus macro",
+        "Prioritizes your focus, then casts on a valid mouseover.",
+        126,
+        function() NS:SetPIMacroMode("FOCUS") end
+    )
+    CreateMacroRow(
+        "Mouseover macro",
+        "Casts on a living friendly player beneath your mouse pointer.",
+        186,
+        function() NS:SetPIMacroMode("MOUSEOVER") end
+    )
 end
 
 -- -----------------------------------------------------------------------------
@@ -916,6 +968,14 @@ function UI:BuildSpellsPage()
         name:SetPoint("RIGHT", -150, 0)
         row.name = name
 
+        local description = CreateLabel(row, "", 9, C.muted)
+        description:SetPoint("LEFT", icon, "RIGHT", 9, -8)
+        description:SetPoint("RIGHT", -150, -8)
+        description:SetJustifyH("LEFT")
+        description:SetWordWrap(false)
+        description:Hide()
+        row.description = description
+
         local id = CreateLabel(row, "", 10, C.muted)
         id:SetPoint("RIGHT", -46, 0)
         id:SetJustifyH("RIGHT")
@@ -1052,9 +1112,17 @@ function UI:BuildSpellEntries()
         local matches = {}
         for _, spell in ipairs(NS.PRESET_SPELLS[classToken] or {}) do
             local liveName = NS:GetSpellName(spell.id, spell.label)
-            local haystack = (className .. " " .. liveName .. " " .. tostring(spell.id)):lower()
+            local description = spell.description
+            local haystack = (className .. " " .. liveName .. " " .. tostring(spell.id)
+                .. " " .. tostring(description or "")):lower()
             if query == "" or haystack:find(query, 1, true) then
-                matches[#matches + 1] = { type = "spell", id = spell.id, label = liveName, class = classToken }
+                matches[#matches + 1] = {
+                    type = "spell",
+                    id = spell.id,
+                    label = liveName,
+                    description = description,
+                    class = classToken,
+                }
             end
         end
         if #matches > 0 then
@@ -1109,6 +1177,7 @@ function UI:RenderSpellRows()
             row.box:Hide()
             row.icon:Hide()
             row.name:Hide()
+            row.description:Hide()
             row.id:Hide()
             row.remove:Hide()
 
@@ -1140,6 +1209,7 @@ function UI:RenderSpellRows()
             row.box:Hide()
             row.icon:Hide()
             row.name:Hide()
+            row.description:Hide()
             row.id:Hide()
             row.remove:Hide()
             ApplySpellRowBackground(row, false)
@@ -1159,7 +1229,12 @@ function UI:RenderSpellRows()
             row.remove:SetShown(entry.customIndex ~= nil)
             row.icon:SetTexture(NS:GetSpellIcon(entry.id))
             row.icon:SetTexCoord(0, 1, 0, 1)
+            row.name:ClearAllPoints()
+            row.name:SetPoint("LEFT", row.icon, "RIGHT", 9, entry.description and 6 or 0)
+            row.name:SetPoint("RIGHT", -150, entry.description and 6 or 0)
             row.name:SetText(entry.label)
+            row.description:SetText(entry.description or "")
+            row.description:SetShown(entry.description ~= nil)
             row.id:SetText(tostring(entry.id))
             local enabled = NS.db.spells[entry.id] == true
             row.check:SetShown(enabled)
@@ -1768,6 +1843,38 @@ function UI:ShowPhraseDialog()
         UI:RefreshPhraseRows()
     end
     add:SetScript("OnClick", commit)
+    input:SetScript("OnEnterPressed", commit)
+    C_Timer.After(0, function() input:SetFocus() end)
+end
+
+function UI:ShowPIMacroTargetDialog()
+    local overlay, panel = self:ShowModal("Create player PI macro", 440, 210)
+
+    local label = CreateLabel(panel, "Player name", 11, C.muted)
+    label:SetPoint("TOPLEFT", 18, -58)
+    local input = CreateEditBox(panel, 404, 34, "Wickii or Wickii-Realm")
+    input:SetPoint("TOPLEFT", 18, -82)
+
+    local errorText = CreateLabel(panel, "", 10, C.danger)
+    errorText:SetPoint("TOPLEFT", input, "BOTTOMLEFT", 0, -8)
+
+    local cancel = CreateButton(panel, "Cancel", 88, 32, false)
+    cancel:SetPoint("BOTTOMRIGHT", -18, 16)
+    cancel:SetScript("OnClick", function() overlay:Hide() end)
+    local create = CreateButton(panel, "Create macro", 112, 32, true)
+    create:SetPoint("RIGHT", cancel, "LEFT", -8, 0)
+
+    local function commit()
+        local target = NS:NormalizeMacroTarget(input:GetText() or "")
+        if not target then
+            errorText:SetText("Enter a valid player name, optionally followed by -Realm.")
+            return
+        end
+        if NS:SetPIMacroMode("PLAYER", target) then
+            overlay:Hide()
+        end
+    end
+    create:SetScript("OnClick", commit)
     input:SetScript("OnEnterPressed", commit)
     C_Timer.After(0, function() input:SetFocus() end)
 end

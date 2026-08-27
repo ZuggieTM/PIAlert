@@ -41,6 +41,121 @@ function NS:Debug(message)
     end
 end
 
+local PI_MACRO_NAME = "PI Alert"
+local PI_MACRO_ICON = 134400 -- INV_Misc_QuestionMark; #showtooltip supplies the live spell icon.
+
+function NS:NormalizeMacroTarget(target)
+    if type(target) ~= "string" then return nil end
+    target = strtrim(target)
+    if target == "" or #target > 80 or target:find("[%[%],/%s]") then return nil end
+    return target
+end
+
+function NS:GetUnitMacroTarget(unit)
+    if not unit or not UnitExists(unit) or not UnitIsPlayer(unit) then return nil end
+    local name, realm
+    if type(UnitFullName) == "function" then
+        name, realm = UnitFullName(unit)
+    else
+        name, realm = UnitName(unit)
+    end
+    if not name or name == "" then return nil end
+    if realm and realm ~= "" then name = name .. "-" .. realm end
+    return self:NormalizeMacroTarget(name)
+end
+
+function NS:GetPIMacroTarget()
+    return self:NormalizeMacroTarget(self.db and self.db.macro and self.db.macro.target)
+end
+
+function NS:GetPIMacroMode()
+    local mode = self.db and self.db.macro and self.db.macro.mode
+    if mode == "PLAYER" or mode == "FOCUS" then return mode end
+    return "MOUSEOVER"
+end
+
+function NS:IsPIMacroTarget(target)
+    if self:GetPIMacroMode() ~= "PLAYER" then return false end
+    local current = self:GetPIMacroTarget()
+    target = self:NormalizeMacroTarget(target)
+    return current and target and current:lower() == target:lower() or false
+end
+
+function NS:BuildPIMacroBody()
+    local mode = self:GetPIMacroMode()
+    local target = mode == "PLAYER" and self:GetPIMacroTarget() or nil
+    local targetClause = ""
+    if target then
+        targetClause = "[@" .. target .. ",help,exists,nodead]"
+    elseif mode == "FOCUS" then
+        targetClause = "[@focus,help,exists,nodead]"
+    end
+    return "#showtooltip Power Infusion\n/cast " .. targetClause
+        .. "[@mouseover,help,exists,nodead] Power Infusion"
+end
+
+function NS:FindGeneralPIMacro()
+    if type(GetNumMacros) ~= "function" or type(GetMacroInfo) ~= "function" then return nil end
+    local generalCount = tonumber((GetNumMacros())) or 0
+    for index = 1, generalCount do
+        local name = GetMacroInfo(index)
+        if name == PI_MACRO_NAME then return index end
+    end
+    return nil
+end
+
+function NS:CreateOrUpdatePIMacro()
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        self:Print("The PI Alert macro cannot be created or updated during combat.")
+        return false
+    end
+    if type(CreateMacro) ~= "function" or type(EditMacro) ~= "function" then
+        self:Print("The macro API is currently unavailable.")
+        return false
+    end
+
+    local existingIndex = self:FindGeneralPIMacro()
+    local ok, macroIndex
+    if existingIndex then
+        ok, macroIndex = pcall(EditMacro, existingIndex, PI_MACRO_NAME, PI_MACRO_ICON, self:BuildPIMacroBody())
+    else
+        ok, macroIndex = pcall(CreateMacro, PI_MACRO_NAME, PI_MACRO_ICON, self:BuildPIMacroBody(), false)
+    end
+
+    if not ok or not macroIndex then
+        self:Print("Could not create the PI Alert macro. Check that General Macros has a free slot.")
+        return false
+    end
+
+    self:Print((existingIndex and "Updated" or "Created") .. " the PI Alert macro under General Macros.")
+    return true
+end
+
+function NS:SetPIMacroMode(mode, target)
+    if not self.db then return false end
+    if mode ~= "PLAYER" and mode ~= "FOCUS" and mode ~= "MOUSEOVER" then return false end
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        self:Print("The PI Alert macro cannot be changed during combat. Try again after combat.")
+        return false
+    end
+    self.db.macro = self.db.macro or {}
+    local normalized = mode == "PLAYER" and self:NormalizeMacroTarget(target) or nil
+    if mode == "PLAYER" and not normalized then
+        self:Print("Enter a valid player name, optionally followed by -Realm.")
+        return false
+    end
+    self.db.macro.mode = mode
+    self.db.macro.target = normalized or ""
+    return self:CreateOrUpdatePIMacro()
+end
+
+function NS:SetPIMacroTarget(target)
+    if target == nil or target == "" then
+        return self:SetPIMacroMode("MOUSEOVER")
+    end
+    return self:SetPIMacroMode("PLAYER", target)
+end
+
 function NS:IsSecretValue(value)
     if type(issecretvalue) == "function" then
         local ok, secret = pcall(issecretvalue, value)
@@ -235,8 +350,8 @@ function NS:GetSpellIcon(spellID)
 end
 
 function NS:ResetDatabase()
-    PIPriorityV2DB = DeepCopy(self.DEFAULTS)
-    self.db = PIPriorityV2DB
+    PIAlertDB = DeepCopy(self.DEFAULTS)
+    self.db = PIAlertDB
     if self.RequestManager then self.RequestManager:ClearAll("reset") end
     if self.Detector then self.Detector:OnSettingsChanged() end
     if self.FrameAlerts then self.FrameAlerts:OnSettingsChanged(true) end
@@ -248,17 +363,17 @@ function NS:ResetDatabase()
 end
 
 function NS:InitializeDatabase()
-    if type(PIPriorityV2DB) ~= "table" or PIPriorityV2DB.schema ~= self.DB_SCHEMA then
-        PIPriorityV2DB = DeepCopy(self.DEFAULTS)
+    if type(PIAlertDB) ~= "table" or PIAlertDB.schema ~= self.DB_SCHEMA then
+        PIAlertDB = DeepCopy(self.DEFAULTS)
     else
-        MergeDefaults(PIPriorityV2DB, self.DEFAULTS)
+        MergeDefaults(PIAlertDB, self.DEFAULTS)
 
         -- 1.0.5: update the original glow defaults without resetting the rest
         -- of an existing configuration. Values are migrated only when they
         -- still match the old shipped defaults.
-        local revision = tonumber(PIPriorityV2DB.settingsRevision) or 1
+        local revision = tonumber(PIAlertDB.settingsRevision) or 1
         if revision < 2 then
-            local alerts = PIPriorityV2DB.alerts or {}
+            local alerts = PIAlertDB.alerts or {}
             if tonumber(alerts.glowPixelLines) == 8 then
                 alerts.glowPixelLines = 12
             end
@@ -269,58 +384,74 @@ function NS:InitializeDatabase()
                 and math.abs((tonumber(c[3]) or 0) - 1.00) < 0.001 then
                 alerts.glowColor = { 1.00, 0.82, 0.20, tonumber(c[4]) or 1.00 }
             end
-            PIPriorityV2DB.settingsRevision = 2
+            PIAlertDB.settingsRevision = 2
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 3 then
-            PIPriorityV2DB.settingsRevision = 3
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 3 then
+            PIAlertDB.settingsRevision = 3
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 4 then
-            PIPriorityV2DB.settingsRevision = 4
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 4 then
+            PIAlertDB.settingsRevision = 4
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 5 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 5 then
             -- 1.0.22: Grace Period was removed because numeric spell cooldown
             -- values can become secret during combat in Midnight.
-            if PIPriorityV2DB.requests then
-                PIPriorityV2DB.requests.gracePeriod = nil
+            if PIAlertDB.requests then
+                PIAlertDB.requests.gracePeriod = nil
             end
-            PIPriorityV2DB.settingsRevision = 5
+            PIAlertDB.settingsRevision = 5
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 6 then
-            if PIPriorityV2DB.alerts then
-                PIPriorityV2DB.alerts.glowAutoCastParticles = nil
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 6 then
+            if PIAlertDB.alerts then
+                PIAlertDB.alerts.glowAutoCastParticles = nil
             end
-            PIPriorityV2DB.settingsRevision = 6
+            PIAlertDB.settingsRevision = 6
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 7 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 7 then
             -- 1.0.29: Existing users start in the recommended mode. Secure spell
             -- visuals stay active while PI is unavailable, but sounds do not.
-            PIPriorityV2DB.alerts = PIPriorityV2DB.alerts or {}
-            PIPriorityV2DB.alerts.spellAlertTiming = "ALWAYS_TRACK"
-            PIPriorityV2DB.settingsRevision = 7
+            PIAlertDB.alerts = PIAlertDB.alerts or {}
+            PIAlertDB.alerts.spellAlertTiming = "ALWAYS_TRACK"
+            PIAlertDB.settingsRevision = 7
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 8 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 8 then
             -- 1.0.30: PI Ready Only is the safer default. Casting PI now hides
             -- secure allied-buff visuals instead of tracking them through PI's CD.
-            PIPriorityV2DB.alerts = PIPriorityV2DB.alerts or {}
-            PIPriorityV2DB.alerts.spellAlertTiming = "PI_READY"
-            PIPriorityV2DB.settingsRevision = 8
+            PIAlertDB.alerts = PIAlertDB.alerts or {}
+            PIAlertDB.alerts.spellAlertTiming = "PI_READY"
+            PIAlertDB.settingsRevision = 8
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 9 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 9 then
             -- Alert cards gained explicit raidframe icon and whisper cooldown
             -- behavior. MergeDefaults supplies the compatibility-preserving
             -- values for existing users.
-            PIPriorityV2DB.settingsRevision = 9
+            PIAlertDB.settingsRevision = 9
         end
-        if (tonumber(PIPriorityV2DB.settingsRevision) or 1) < 10 then
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 10 then
             -- Whisper sounds now use one fixed anti-spam window instead of a
             -- user-facing throttle setting.
-            if PIPriorityV2DB.alerts then
-                PIPriorityV2DB.alerts.soundCooldown = nil
+            if PIAlertDB.alerts then
+                PIAlertDB.alerts.soundCooldown = nil
             end
-            PIPriorityV2DB.settingsRevision = 10
+            PIAlertDB.settingsRevision = 10
+        end
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 11 then
+            -- Store the optional account-wide PI macro target. MergeDefaults
+            -- supplies an empty target for existing installations.
+            PIAlertDB.settingsRevision = 11
+        end
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 12 then
+            -- Existing named-target macros retain their target. Everything else
+            -- starts as the explicit mouseover macro type.
+            PIAlertDB.macro = PIAlertDB.macro or {}
+            if self:NormalizeMacroTarget(PIAlertDB.macro.target) then
+                PIAlertDB.macro.mode = "PLAYER"
+            else
+                PIAlertDB.macro.mode = "MOUSEOVER"
+            end
+            PIAlertDB.settingsRevision = 12
         end
     end
-    self.db = PIPriorityV2DB
+    self.db = PIAlertDB
 end
 
 function NS:InitializeModules()
@@ -334,16 +465,38 @@ function NS:InitializeModules()
     if self.UI and self.UI.Init then self.UI:Init() end
 end
 
+function NS:PrintSlashHelp()
+    local headerColor = CreateColor(0.333, 0.875, 1.000, 1)
+    local commandColor = CreateColor(0.208, 0.902, 0.698, 1)
+    local separatorColor = CreateColor(0.510, 0.580, 0.620, 1)
+    local textColor = CreateColor(0.910, 0.941, 0.953, 1)
+
+    local function Colorize(color, value)
+        return color:WrapTextInColorCode(value)
+    end
+
+    local function AddLine(commandText, description)
+        DEFAULT_CHAT_FRAME:AddMessage(Colorize(commandColor, commandText) .. " "
+            .. Colorize(separatorColor, "-") .. " " .. Colorize(textColor, description))
+    end
+
+    DEFAULT_CHAT_FRAME:AddMessage(Colorize(headerColor, "PI Alert available commands:"))
+    AddLine("/pia", "Open or close settings")
+    AddLine("/pia mo or /pia mouseover", "Create the mouseover PI macro")
+    AddLine("/pia focus", "Create the focus PI macro with mouseover fallback")
+    AddLine("/pia test", "Preview your configured alert")
+    AddLine("/pia reset", "Reset PI Alert settings")
+    AddLine("/pia help", "Show this command list")
+end
+
 function NS:RegisterSlashCommands()
     if self.slashRegistered then return end
     self.slashRegistered = true
 
     SLASH_PIALERT1 = "/pia"
-    SLASH_PIALERT2 = "/pialert"
-    SLASH_PIALERT3 = "/pip" -- Legacy alias from PI Priority.
     SlashCmdList.PIALERT = function(input)
         input = strtrim(input or "")
-        local command, rest = input:match("^(%S+)%s*(.-)$")
+        local command = input:match("^(%S+)")
         command = command and command:lower() or ""
 
         if command == "" or command == "config" or command == "options" then
@@ -363,11 +516,18 @@ function NS:RegisterSlashCommands()
         elseif command == "test" then
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to test an alert."); return end
             if NS.RequestManager then NS.RequestManager:TestRequest() end
+        elseif command == "mo" or command == "mouseover" then
+            NS:SetPIMacroMode("MOUSEOVER")
+        elseif command == "focus" then
+            NS:SetPIMacroMode("FOCUS")
+        elseif command == "help" or command == "commands" then
+            NS:PrintSlashHelp()
         elseif command == "clear" then
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to clear active alerts."); return end
             if NS.RequestManager then NS.RequestManager:ClearAll("slash") end
         else
-            NS:Print("Commands: /pia, /pia test, /pia status, /pia debug, /pia frames, /pia clear, /pia reset")
+            NS:Print("Unknown command '" .. command .. "'.")
+            NS:PrintSlashHelp()
         end
     end
 end
