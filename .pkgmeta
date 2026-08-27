@@ -1,0 +1,37 @@
+# PI Alert — CurseForge / BigWigsMods packager manifest.
+# Single-folder addon: every Lua file lives at the repository root and is
+# loaded by PIAlert.toc, so no move-folders block is required.
+
+package-as: PIAlert
+
+# Libraries are committed to the repository so a plain `git clone` into
+# Interface/AddOns runs without a build step. The packager replaces each of
+# these folders with a fresh upstream checkout when it builds the release.
+externals:
+  Libs/LibStub:
+    url: https://repos.wowace.com/wow/ace3/trunk/LibStub
+  Libs/CallbackHandler-1.0:
+    url: https://repos.wowace.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+  Libs/LibSharedMedia-3.0:
+    url: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
+  # No tag pin: the newest LibGetFrame tag (1.6.2) is older than the bundled
+  # copy, so tracking the default branch is the only non-downgrading option.
+  Libs/LibGetFrame-1.0:
+    url: https://github.com/mrbuds/LibGetFrame
+
+# No OptionalDeps: the sound list is built lazily on first picker click, well
+# after every addon has registered its media, so load order is irrelevant.
+
+enable-nolib-creation: no
+
+# Keep repository assets available to contributors without shipping them.
+ignore:
+  - .gitattributes
+  - .gitignore
+  - Branding
+  - README.md
+  - README.txt
+  - CHANGELOG.md
+  # Vendored but never loaded: LibCustomGlow-1.0 is absent from PIAlert.toc
+  # and unreferenced in Lua. Remove this line if it is ever wired up.
+  - Libs/LibCustomGlow-1.0
