@@ -1,4 +1,4 @@
-PI Alert 1.0.39-beta
+PI Alert 1.0.40-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -15,6 +15,10 @@ REQUEST SOURCES
 - Whispers & Spell Cast
 - Whispers only
 - Spell Cast only
+
+The Requests page also controls who may request: Everyone in Group, Focus, or
+Specific Players. Whisper phrases appear only when whispers are enabled, and
+the configured-player list appears only when Specific Players is selected.
 
 Whisper requests and allied spell requests intentionally use different timing
 models because Blizzard keeps allied aura transitions secret to normal addon Lua.
@@ -46,12 +50,6 @@ Spell-triggered visuals:
 Because Blizzard does not expose a normal Lua event saying exactly when the
 restricted allied buff appeared, Whisper Request Duration does not apply to
 spell-triggered visuals.
-
-REQUESTERS
-----------
-- Everyone in Group
-- Focus
-- Specific Players
 
 Specific player names are case-insensitive and realm-insensitive. Enter only the
 base character name, for example: Senilemammy.
@@ -118,6 +116,13 @@ COMMANDS
 /pia frames     Print unit-token -> raid/party frame mappings
 /pia clear      Clear all requests
 /pia reset      Reset settings
+
+1.0.40-beta
+-----------
+- Merged the Requests and Requesters settings into one responsive Requests page.
+- Moved Who can request and the Specific Players fallback into Request handling.
+- Showed whisper phrases and the specific-player list only when their matching
+  modes are selected.
 
 1.0.39-beta
 -----------
