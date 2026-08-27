@@ -95,8 +95,8 @@ selected speed and color apply to both paths.
 Use /pia test to preview the configured alert behavior on your own resolved
 party/raidframe.
 
-The sound picker includes five original PIAlert request cues: Infusion, Single
-Note, Arcane Spark, Radiance and a spoken "P I" Voice. It also supports Blizzard
+The sound picker includes six original PIAlert request cues: Infusion, Single
+Note, Arcane Spark, Radiance, Voice and Soft Voice. It also supports Blizzard
 sounds and LibSharedMedia-3.0 registrations, and is searchable.
 Only accepted whisper requests trigger the selected sound during normal use;
 /pia test also plays it as a preview. Tracked allied buff activations use visual
