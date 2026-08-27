@@ -1,7 +1,7 @@
 ## Interface: 120100
 ## Title: PI Alert
 ## Notes: Power Infusion alerts from whispers and allied cooldown activations.
-## Author: Jesper
+## Author: Zuggie
 ## Version: 1.0.0
 ## SavedVariables: PIAlertDB
 
