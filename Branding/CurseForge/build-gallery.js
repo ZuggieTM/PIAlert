@@ -25,7 +25,7 @@ const slides = [
     output: "01-pialert-hero.jpg",
     source: "WoWScrnShot_082726_170152.jpg",
     crop: { left: 1600, top: 210, width: 1856, height: 1160 },
-    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    shot: { x: 745, y: 170, width: 1240, height: 775 },
     eyebrow: "POWER INFUSION ASSISTANT",
     title: ["Give PI to the", "right player."],
     body: [
@@ -39,7 +39,7 @@ const slides = [
     output: "02-alerts.jpg",
     source: "WoWScrnShot_082726_170024.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    shot: { x: 745, y: 170, width: 1240, height: 775 },
     eyebrow: "CUSTOM ALERTS",
     title: ["Never miss", "a PI request."],
     body: [
@@ -52,7 +52,7 @@ const slides = [
     output: "03-requests.jpg",
     source: "WoWScrnShot_082726_170021.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    shot: { x: 745, y: 170, width: 1240, height: 775 },
     eyebrow: "REQUEST CONTROL",
     title: ["You decide who", "can ask for PI."],
     body: [
@@ -65,7 +65,7 @@ const slides = [
     output: "04-spells.jpg",
     source: "WoWScrnShot_082726_170044.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    shot: { x: 745, y: 170, width: 1240, height: 775 },
     eyebrow: "COOLDOWN TRACKING",
     title: ["Track the", "cooldowns that", "matter."],
     body: [
@@ -78,7 +78,7 @@ const slides = [
     output: "05-macros.jpg",
     source: "WoWScrnShot_082726_170047.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    shot: { x: 745, y: 170, width: 1240, height: 775 },
     eyebrow: "BUILT-IN MACROS",
     title: ["One click to the", "right target."],
     body: [
@@ -173,17 +173,46 @@ let frameOverlayPromise;
 
 function frameOverlayBuffer() {
   if (!frameOverlayPromise) {
-    const mask = Buffer.from(`
-      <svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-        <path d="M 0 0 H ${WIDTH} V ${HEIGHT} H 0 Z M 780 205 H 1948 V 925 H 780 Z" fill="white" fill-rule="evenodd"/>
-      </svg>
-    `);
-    frameOverlayPromise = sharp(BACKGROUND)
-      .resize(WIDTH, HEIGHT, { fit: "cover" })
-      .ensureAlpha()
-      .composite([{ input: mask, blend: "dest-in" }])
-      .png()
-      .toBuffer();
+    frameOverlayPromise = (async () => {
+      const source = await sharp(BACKGROUND)
+        .resize(WIDTH, HEIGHT, { fit: "cover" })
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      const overlay = Buffer.alloc(source.data.length);
+
+      for (let y = 0; y < HEIGHT; y += 1) {
+        for (let x = 0; x < WIDTH; x += 1) {
+          const inFrameBounds = x >= 690 && x <= 2015 && y >= 130 && y <= 995;
+          const inFrameBand = inFrameBounds && (
+            y <= 198 ||
+            y >= 925 ||
+            x <= 780 ||
+            x >= 1940 ||
+            (x >= 1315 && x <= 1415 && y <= 220) ||
+            (x >= 1315 && x <= 1415 && y >= 905)
+          );
+          if (!inFrameBand) continue;
+
+          const index = (y * WIDTH + x) * 4;
+          const red = source.data[index];
+          const green = source.data[index + 1];
+          const blue = source.data[index + 2];
+          const peak = Math.max(red, green, blue);
+          const chroma = peak - Math.min(red, green, blue);
+          const alpha = Math.max(0, Math.min(255, (peak - 48) * 12 + chroma * 3));
+
+          overlay[index] = red;
+          overlay[index + 1] = green;
+          overlay[index + 2] = blue;
+          overlay[index + 3] = alpha;
+        }
+      }
+
+      return sharp(overlay, {
+        raw: { width: WIDTH, height: HEIGHT, channels: 4 },
+      }).png().toBuffer();
+    })();
   }
   return frameOverlayPromise;
 }
