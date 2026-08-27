@@ -80,7 +80,7 @@ const slides = [
     crop: { left: 2300, top: 200, width: 1600, height: 1000 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "RIGHT-CLICK CONTROL",
-    title: ["Manage PI targets", "in seconds."],
+    title: ["Manage PI", "targets in", "seconds."],
     body: [
       "Right-click any group member to manage request",
       "priority or set the named target in your PI macro.",
