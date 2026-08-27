@@ -131,6 +131,7 @@ COMMANDS
 -----
 - First stable release of PI Alert.
 - Finalized the curated spell list and specialization notes.
+- Centralized aura-icon position and size fallbacks on the configured defaults.
 - Added complete installation, configuration and usage documentation in
   README.md.
 

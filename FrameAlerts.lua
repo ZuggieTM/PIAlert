@@ -5,6 +5,10 @@ NS.FrameAlerts = FA
 
 local WHISPER_SOUND_THROTTLE = 3
 
+local function GetAuraIconDefaults()
+    return NS.DEFAULTS.auraIcon
+end
+
 local function SafeMethod(object, method, ...)
     if not object or type(object[method]) ~= "function" then return nil end
     local ok, value = pcall(object[method], object, ...)
@@ -189,9 +193,11 @@ function FA:StartGlow(visual, request)
 end
 
 function FA:CreateAuraIcon()
+    local defaults = GetAuraIconDefaults()
+    local size = tonumber(NS.db.auraIcon.size) or defaults.size
     local frame = CreateFrame("Frame", "PIAlertAuraIcon", UIParent, "BackdropTemplate")
     self.auraIcon = frame
-    frame:SetSize(NS.db.auraIcon.size or 52, NS.db.auraIcon.size or 52)
+    frame:SetSize(size, size)
     frame:SetFrameStrata("HIGH")
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
@@ -231,10 +237,11 @@ function FA:CreateAuraIcon()
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         local point, _, relativePoint, x, y = self:GetPoint(1)
-        NS.db.auraIcon.point = point or "CENTER"
-        NS.db.auraIcon.relativePoint = relativePoint or "CENTER"
-        NS.db.auraIcon.x = x or 0
-        NS.db.auraIcon.y = y or 0
+        local positionDefaults = GetAuraIconDefaults()
+        NS.db.auraIcon.point = point or positionDefaults.point
+        NS.db.auraIcon.relativePoint = relativePoint or positionDefaults.relativePoint
+        NS.db.auraIcon.x = x or positionDefaults.x
+        NS.db.auraIcon.y = y or positionDefaults.y
     end)
 
     self:ApplyAuraIconPosition()
@@ -244,17 +251,25 @@ end
 function FA:ApplyAuraIconPosition()
     if not self.auraIcon then return end
     local cfg = NS.db.auraIcon
+    local defaults = GetAuraIconDefaults()
     self.auraIcon:ClearAllPoints()
-    self.auraIcon:SetPoint(cfg.point or "CENTER", UIParent, cfg.relativePoint or "CENTER", cfg.x or 0, cfg.y or -120)
-    local size = tonumber(cfg.size) or 52
+    self.auraIcon:SetPoint(
+        cfg.point or defaults.point,
+        UIParent,
+        cfg.relativePoint or defaults.relativePoint,
+        cfg.x or defaults.x,
+        cfg.y or defaults.y
+    )
+    local size = tonumber(cfg.size) or defaults.size
     self.auraIcon:SetSize(size, size)
 end
 
 function FA:ResetAuraIconPosition()
-    NS.db.auraIcon.point = "CENTER"
-    NS.db.auraIcon.relativePoint = "CENTER"
-    NS.db.auraIcon.x = 0
-    NS.db.auraIcon.y = -120
+    local defaults = GetAuraIconDefaults()
+    NS.db.auraIcon.point = defaults.point
+    NS.db.auraIcon.relativePoint = defaults.relativePoint
+    NS.db.auraIcon.x = defaults.x
+    NS.db.auraIcon.y = defaults.y
     self:ApplyAuraIconPosition()
 end
 

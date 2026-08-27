@@ -657,6 +657,7 @@ end
 function Detector:GetSecureVisualConfig(unit)
     local alerts = NS.db.alerts or {}
     local auraIcon = NS.db.auraIcon or {}
+    local auraIconDefaults = NS.DEFAULTS.auraIcon
     local sourceColor = self:GetSecureGlowColor(unit)
     local color = {
         Clamp(sourceColor[1], 0, 1, 1.00),
@@ -676,7 +677,7 @@ function Detector:GetSecureVisualConfig(unit)
         glowPixelThickness = Clamp(alerts.glowPixelThickness, 1, 8, 2),
         glowAutoCastScale = Clamp(alerts.glowAutoCastScale, 0.5, 3.0, 1.0),
         glowSpeed = Clamp(alerts.glowSpeed, 0.25, 3.0, 1.0),
-        auraIconSize = math.floor(Clamp(auraIcon.size, 12, 96, 52) + 0.5),
+        auraIconSize = math.floor(Clamp(auraIcon.size, 12, 96, auraIconDefaults.size) + 0.5),
     }
     local signatureParts = {
         visual.glow and "1" or "0",
