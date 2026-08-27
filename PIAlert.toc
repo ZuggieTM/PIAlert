@@ -4,6 +4,7 @@
 ## Author: Zuggie
 ## Version: 1.0.0
 ## SavedVariables: PIAlertDB
+## IconTexture: Interface\AddOns\PIAlert\Media\pialert-icon.tga
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
