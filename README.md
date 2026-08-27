@@ -22,29 +22,11 @@ Game version: **Midnight 12.1**
 - World of Warcraft Retail 12.1 or later.
 - Power Infusion is required to use the alert-readiness and macro features.
 
-PI Alert has no required external dependencies. It includes LibGetFrame for raidframe resolution and supports LibSharedMedia sounds when that library is available from another addon. When LibSharedMedia is present, PI Alert also registers all six included sounds so other addons can use them.
-
-## Installation
-
-1. Download `PIAlert-v1.0.0.zip` from the [latest GitHub release](https://github.com/ZuggieTM/PIAlert/releases/latest).
-2. Extract the archive into:
-
-   ```text
-   World of Warcraft/_retail_/Interface/AddOns/
-   ```
-
-3. Confirm the resulting path is:
-
-   ```text
-   World of Warcraft/_retail_/Interface/AddOns/PIAlert/PIAlert.toc
-   ```
-
-4. Start World of Warcraft or type `/reload` if the game is already running.
-5. Type `/pia` to open the settings window.
+PI Alert has no required external dependencies. It bundles LibGetFrame for raidframe resolution and LibSharedMedia, so the shared-media sound list is always available. PI Alert also registers all six of its included sounds with LibSharedMedia so other addons can use them.
 
 ## Getting started
 
-The settings window contains four pages:
+Type `/pia` to open the settings window. It contains four pages:
 
 - **Requests** — Choose how requests are accepted, who may request, accepted whisper phrases, and specific players.
 - **Alerts** — Configure raidframe glows and icons, the movable aura icon, and whisper sound behavior.

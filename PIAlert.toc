@@ -4,10 +4,10 @@
 ## Author: Jesper
 ## Version: 1.0.0
 ## SavedVariables: PIAlertDB
-## OptionalDeps: LibSharedMedia-3.0, SharedMedia, Masque
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
 Libs\LibGetFrame-1.0\LibGetFrame-1.0.lua
 
 Defaults.lua

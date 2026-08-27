@@ -1,0 +1,2 @@
+# Keep artwork in version control, but exclude it from Git archive/source downloads.
+Branding/** export-ignore
