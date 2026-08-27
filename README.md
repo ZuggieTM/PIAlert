@@ -13,7 +13,7 @@ Game version: **Midnight 12.1**
 - Show a Power Infusion icon or the tracked spell icon on party and raidframes.
 - Show a secure cooldown swipe for tracked buffs and timed whisper requests.
 - Display a movable central Power Infusion alert icon.
-- Play a configurable sound for accepted whisper requests.
+- Play the included original PI request sound, a Blizzard sound, or a LibSharedMedia sound for accepted whispers.
 - Create Player, Focus, and Mouseover Power Infusion macros under General Macros.
 - Add requesters or set the Player macro target from the unit right-click menu.
 
@@ -104,7 +104,7 @@ Whisper requests fall back to the Power Infusion icon because they do not have a
 ### Whisper settings
 
 - Enable or disable whisper-request sounds.
-- Choose a built-in or LibSharedMedia sound.
+- Choose the included PIAlert sound, a Blizzard sound, or a LibSharedMedia sound.
 - Configure how long whisper alerts remain visible.
 - Allow or suppress whisper alerts while Power Infusion is on cooldown.
 
