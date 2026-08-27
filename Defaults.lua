@@ -127,6 +127,7 @@ NS.DEFAULTS = {
         duration = 5,
         phrases = {
             { text = "PI", match = "CONTAINS" },
+            { text = "Power Infusion", match = "CONTAINS" },
         },
     },
 
@@ -170,7 +171,7 @@ NS.DEFAULTS = {
         point = "CENTER",
         relativePoint = "CENTER",
         x = 0,
-        y = -120,
+        y = 120,
         size = 52,
     },
 

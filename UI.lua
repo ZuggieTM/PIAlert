@@ -1852,7 +1852,7 @@ function UI:ShowPIMacroTargetDialog()
 
     local label = CreateLabel(panel, "Player name", 11, C.muted)
     label:SetPoint("TOPLEFT", 18, -58)
-    local input = CreateEditBox(panel, 404, 34, "Wickii or Wickii-Realm")
+    local input = CreateEditBox(panel, 404, 34, "Zuggie or Zuggie-Realm")
     input:SetPoint("TOPLEFT", 18, -82)
 
     local errorText = CreateLabel(panel, "", 10, C.danger)
