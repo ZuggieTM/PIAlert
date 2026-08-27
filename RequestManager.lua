@@ -52,6 +52,11 @@ function RM:Receive(guid, name, unit, source, spellID, message)
     local duration = tonumber(NS.db.requests.duration) or 5
 
     local existing = self.active[key]
+    if existing and source == "WHISPER" then
+        NS:Debug("Ignored repeated whisper from " .. displayName .. "; their active request is still running.")
+        return
+    end
+
     if existing then
         existing.requestedAt = now
         existing.expiresAt = now + duration
