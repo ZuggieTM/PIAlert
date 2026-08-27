@@ -22,7 +22,7 @@ Game version: **Midnight 12.1**
 - World of Warcraft Retail 12.1 or later.
 - Power Infusion is required to use the alert-readiness and macro features.
 
-PI Alert has no required external dependencies. It includes LibGetFrame for raidframe resolution and supports LibSharedMedia sounds when that library is available from another addon.
+PI Alert has no required external dependencies. It includes LibGetFrame for raidframe resolution and supports LibSharedMedia sounds when that library is available from another addon. When LibSharedMedia is present, PI Alert also registers all six included sounds so other addons can use them.
 
 ## Installation
 

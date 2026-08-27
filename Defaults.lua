@@ -154,7 +154,7 @@ NS.DEFAULTS = {
         sound = true,
         whisperOnPICooldown = false,
         spellAlertTiming = "PI_READY", -- PI_READY, ALWAYS_TRACK
-        soundKey = "addon:pi-request",
+        soundKey = "addon:pi-voice-soft",
 
         -- Whisper alerts and secure allied spell alerts both use native
         -- AnimationGroups; the secure pulse is frozen during AuraButton init.
