@@ -74,13 +74,6 @@ function NS:GetPIMacroMode()
     return "MOUSEOVER"
 end
 
-function NS:IsPIMacroTarget(target)
-    if self:GetPIMacroMode() ~= "PLAYER" then return false end
-    local current = self:GetPIMacroTarget()
-    target = self:NormalizeMacroTarget(target)
-    return current and target and current:lower() == target:lower() or false
-end
-
 function NS:BuildPIMacroBody()
     local mode = self:GetPIMacroMode()
     local target = mode == "PLAYER" and self:GetPIMacroTarget() or nil

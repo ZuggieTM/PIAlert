@@ -111,7 +111,7 @@ The Macros page creates or updates one account-wide PI Alert macro under General
 Macros. Player, Focus and Mouseover variants are available. Player and Focus
 always fall back to a living friendly mouseover target.
 
-Right-clicking a party/raid member can set or clear the Player macro target.
+Right-clicking a party/raid member provides an action that sets the Player macro target.
 /pia focus creates the Focus variant; /pia mo and /pia mouseover create the
 Mouseover variant.
 
@@ -355,4 +355,4 @@ COMMANDS
 
 Right-click group members
 -------------------------
-While PI Alert is active, right-click a party/raid member and toggle "PI Alert requester" to add or remove them from the Specific Players list. The option directly below it sets that player as the named target in the General PI Alert macro while retaining mouseover as the fallback.
+While PI Alert is active, right-click a party/raid member and toggle "PI Alert requester" to add or remove them from the Specific Players list. The "Set as PI Alert macro target" action directly below it sets that player as the named target in the General PI Alert macro while retaining mouseover as the fallback.
