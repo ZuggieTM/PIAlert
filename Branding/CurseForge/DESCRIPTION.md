@@ -29,10 +29,10 @@ PIAlert includes organized presets for major class cooldowns and supports custom
 
 Create an account-wide **Player**, **Focus**, or **Mouseover** Power Infusion macro from inside the addon. Player and Focus variants automatically fall back to a valid friendly mouseover target.
 
-You can also right-click a party or raid member to:
+Right-click any party or raid member and use the dedicated **PI Alert** section to:
 
-- Add or remove them from Specific Players.
-- Set them as the Player macro target.
+- Toggle **PI Alert requester** to add or remove them from Specific Players.
+- Choose **Set as PI Alert macro target** to update the named Player macro target while retaining mouseover fallback.
 
 ## Raidframe support
 

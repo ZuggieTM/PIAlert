@@ -4,7 +4,7 @@ This folder contains the reusable assets and build script for the PIAlert CurseF
 
 ## Build
 
-The script expects the five original World of Warcraft screenshots in the local retail screenshot folder. It deliberately composites the real addon interface instead of recreating UI text with generative tools.
+The script expects the six original World of Warcraft screenshots in the local retail screenshot folder. It deliberately composites the real addon interface instead of recreating UI text with generative tools.
 
 ```powershell
 $env:NODE_PATH = "C:\Users\jband\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules"
@@ -15,10 +15,11 @@ Final 2048×1152 JPEGs are written to `Branding/CurseForge/gallery`.
 
 ## Source screenshots
 
-- `WoWScrnShot_082726_170152.jpg` — live PI alert
+- `WoWScrnShot_082726_212445.jpg` — live combat PI alert
 - `WoWScrnShot_082726_170024.jpg` — Alerts
 - `WoWScrnShot_082726_170021.jpg` — Requests
 - `WoWScrnShot_082726_170044.jpg` — Spells
+- `WoWScrnShot_082726_214545.jpg` — right-click controls
 - `WoWScrnShot_082726_170047.jpg` — Macros
 
 The 5120×1440 source screenshots remain in the World of Warcraft screenshot folder and are not committed to keep the repository lightweight.

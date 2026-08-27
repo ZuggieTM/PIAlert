@@ -23,8 +23,8 @@ const COLORS = {
 const slides = [
   {
     output: "01-pialert-hero.jpg",
-    source: "WoWScrnShot_082726_170152.jpg",
-    crop: { left: 1600, top: 210, width: 1856, height: 1160 },
+    source: "WoWScrnShot_082726_212445.jpg",
+    crop: { left: 1680, top: 0, width: 2304, height: 1440 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "POWER INFUSION ASSISTANT",
     title: ["Give PI to the", "right player."],
@@ -75,7 +75,20 @@ const slides = [
     bullets: ["Class-organized presets", "Custom spell support", "Multiple aura IDs per cooldown"],
   },
   {
-    output: "05-macros.jpg",
+    output: "05-right-click.jpg",
+    source: "WoWScrnShot_082726_214545.jpg",
+    crop: { left: 2300, top: 200, width: 1600, height: 1000 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    eyebrow: "RIGHT-CLICK CONTROL",
+    title: ["Manage PI targets", "in seconds."],
+    body: [
+      "Right-click any group member to manage request",
+      "priority or set the named target in your PI macro.",
+    ],
+    bullets: ["Dedicated PI Alert menu section", "Toggle Specific Players instantly", "Set Player macro targets"],
+  },
+  {
+    output: "06-macros.jpg",
     source: "WoWScrnShot_082726_170047.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
