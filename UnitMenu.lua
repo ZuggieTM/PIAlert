@@ -51,6 +51,7 @@ function UnitMenu:AddEntry(rootDescription, contextData)
     if not baseName or baseName == "" then return end
 
     rootDescription:QueueDivider()
+    rootDescription:CreateTitle("PI Alert")
 
     local entry = rootDescription:CreateCheckbox(
         "PI Alert requester",
