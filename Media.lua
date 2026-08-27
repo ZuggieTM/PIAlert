@@ -28,13 +28,13 @@ Media.addonSounds = {
         path = MEDIA_PATH .. "pi-radiance.wav",
     },
     {
-        key = "addon:pi-voice",
-        name = "PI Alert - Voice",
-        path = MEDIA_PATH .. "pi-voice.wav",
+        key = "addon:pi-voice-pitched",
+        name = "PI Alert - Voice Pitched",
+        path = MEDIA_PATH .. "pi-voice-pitched.wav",
     },
     {
         key = "addon:pi-voice-soft",
-        name = "PI Alert - Soft Voice",
+        name = "PI Alert - Voice Soft",
         path = MEDIA_PATH .. "pi-voice-soft.wav",
     },
 }
@@ -46,8 +46,26 @@ Media.builtinSounds = {
 }
 
 function Media:Init()
-    self.lastLSM = nil
     self.soundCache = nil
+    self:GetLSM()
+end
+
+function Media:RegisterAddonSounds(lib)
+    if not lib or type(lib.Register) ~= "function" or type(lib.Fetch) ~= "function" then return false end
+    if self.registeredLSM == lib then return true end
+
+    local allRegistered = true
+    for _, entry in ipairs(self.addonSounds) do
+        local registerOK = pcall(lib.Register, lib, "sound", entry.name, entry.path)
+        local fetchOK, registeredPath = pcall(lib.Fetch, lib, "sound", entry.name, true)
+        if not registerOK or not fetchOK or registeredPath ~= entry.path then
+            allRegistered = false
+        end
+    end
+
+    self.soundCache = nil
+    if allRegistered then self.registeredLSM = lib end
+    return allRegistered
 end
 
 function Media:GetLSM()
@@ -58,6 +76,7 @@ function Media:GetLSM()
                 self.lastLSM = lib
                 self.soundCache = nil
             end
+            self:RegisterAddonSounds(lib)
             return lib
         end
     end
@@ -67,10 +86,14 @@ end
 function Media:BuildSoundCache()
     local results = {}
     local seen = {}
+    local seenNames = {}
 
     local function add(entry)
         if not entry or not entry.key or not entry.name or seen[entry.key] then return end
+        local normalizedName = entry.name:lower()
+        if seenNames[normalizedName] then return end
         seen[entry.key] = true
+        seenNames[normalizedName] = true
         results[#results + 1] = entry
     end
 
@@ -166,4 +189,20 @@ function Media:Play(key)
 
     PlaySound((SOUNDKIT and SOUNDKIT.RAID_WARNING) or 8959, "Master")
     return false
+end
+
+-- LibSharedMedia is optional and may be embedded by an addon that loads after
+-- PIAlert. Keep listening until the library appears and all packaged sounds
+-- have been published for other addons to use.
+local registrationFrame = CreateFrame("Frame")
+registrationFrame:RegisterEvent("ADDON_LOADED")
+registrationFrame:RegisterEvent("PLAYER_LOGIN")
+registrationFrame:SetScript("OnEvent", function(self)
+    local lib = Media:GetLSM()
+    if lib and Media.registeredLSM == lib then self:UnregisterAllEvents() end
+end)
+
+local initialLibrary = Media:GetLSM()
+if initialLibrary and Media.registeredLSM == initialLibrary then
+    registrationFrame:UnregisterAllEvents()
 end
