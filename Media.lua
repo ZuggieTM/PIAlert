@@ -3,6 +3,17 @@ local ADDON_NAME, NS = ...
 local Media = {}
 NS.Media = Media
 
+local MEDIA_PATH = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\"
+local DEFAULT_SOUND_KEY = "addon:pi-request"
+
+Media.addonSounds = {
+    {
+        key = DEFAULT_SOUND_KEY,
+        name = "PI Alert - Infusion",
+        path = MEDIA_PATH .. "pi-request.wav",
+    },
+}
+
 Media.builtinSounds = {
     { key = "builtin:Blizzard - Raid Warning", name = "Blizzard - Raid Warning", kit = (SOUNDKIT and SOUNDKIT.RAID_WARNING) or 8959 },
     { key = "builtin:Blizzard - Ready Check", name = "Blizzard - Ready Check", kit = 8960 },
@@ -38,6 +49,7 @@ function Media:BuildSoundCache()
         results[#results + 1] = entry
     end
 
+    for _, entry in ipairs(self.addonSounds) do add(entry) end
     for _, entry in ipairs(self.builtinSounds) do add(entry) end
 
     local lsm = self:GetLSM()
@@ -75,8 +87,13 @@ function Media:GetSounds(search)
 end
 
 function Media:GetSoundDisplayName(key)
-    if type(key) ~= "string" then return "Blizzard - Raid Warning" end
-    if key:sub(1, 8) == "builtin:" then
+    if type(key) ~= "string" then return "PI Alert - Infusion" end
+    if key:sub(1, 6) == "addon:" then
+        for _, entry in ipairs(self.addonSounds) do
+            if entry.key == key then return entry.name end
+        end
+        return key:sub(7)
+    elseif key:sub(1, 8) == "builtin:" then
         return key:sub(9)
     elseif key:sub(1, 4) == "lsm:" then
         return key:sub(5)
@@ -85,7 +102,19 @@ function Media:GetSoundDisplayName(key)
 end
 
 function Media:Play(key)
-    key = key or "builtin:Blizzard - Raid Warning"
+    key = key or DEFAULT_SOUND_KEY
+
+    if key:sub(1, 6) == "addon:" then
+        for _, entry in ipairs(self.addonSounds) do
+            if entry.key == key then
+                local willPlay = PlaySoundFile(entry.path, "Master")
+                if willPlay then return true end
+                break
+            end
+        end
+        PlaySound((SOUNDKIT and SOUNDKIT.RAID_WARNING) or 8959, "Master")
+        return false
+    end
 
     if key:sub(1, 8) == "builtin:" then
         for _, entry in ipairs(self.builtinSounds) do
