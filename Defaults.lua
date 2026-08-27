@@ -63,11 +63,9 @@ NS.PRESET_SPELLS = {
     },
     PALADIN = {
         { id = 31884,  label = "Avenging Wrath" },
-        { id = 231895, label = "Crusade" },
     },
     PRIEST = {
         { id = 228260, label = "Void Eruption / Voidform", auraIds = { 194249 } },
-        { id = 391109, label = "Dark Ascension" },
     },
     ROGUE = {
         { id = 13750,  label = "Adrenaline Rush" },
@@ -81,8 +79,16 @@ NS.PRESET_SPELLS = {
     },
     SHAMAN = {
         -- Ascendance has separate cast/aura IDs by specialization in 12.1.
-        { id = 114050, label = "Ascendance", auraIds = { 114050, 114051, 114052, 1219480 } },
-        { id = 114051, label = "Ascendance (Enhancement)", auraIds = { 114050, 114051, 114052, 1219480 } },
+        {
+            id = 114050, label = "Ascendance",
+            auraIds = { 114050, 114051, 114052, 1219480 },
+            description = "Elemental"
+        },
+        {
+            id = 114051, label = "Ascendance (Enhancement)",
+            auraIds = { 114050, 114051, 114052, 1219480 },
+            description = "Enhancement"
+        },
         { id = 384352, label = "Doom Winds" },
     },
     WARLOCK = {
