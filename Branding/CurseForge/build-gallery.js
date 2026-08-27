@@ -24,8 +24,8 @@ const slides = [
   {
     output: "01-pialert-hero.jpg",
     source: "WoWScrnShot_082726_170152.jpg",
-    crop: { left: 1580, top: 210, width: 2080, height: 1160 },
-    shot: { x: 805, y: 205, width: 1170, height: 652 },
+    crop: { left: 1600, top: 210, width: 1856, height: 1160 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "POWER INFUSION ASSISTANT",
     title: ["Give PI to the", "right player."],
     body: [
@@ -38,8 +38,8 @@ const slides = [
   {
     output: "02-alerts.jpg",
     source: "WoWScrnShot_082726_170024.jpg",
-    crop: { left: 2835, top: 125, width: 1160, height: 945 },
-    shot: { x: 885, y: 118, width: 1090, height: 888 },
+    crop: { left: 2659, top: 125, width: 1512, height: 945 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "CUSTOM ALERTS",
     title: ["Never miss", "a PI request."],
     body: [
@@ -51,8 +51,8 @@ const slides = [
   {
     output: "03-requests.jpg",
     source: "WoWScrnShot_082726_170021.jpg",
-    crop: { left: 2835, top: 125, width: 1160, height: 945 },
-    shot: { x: 885, y: 118, width: 1090, height: 888 },
+    crop: { left: 2659, top: 125, width: 1512, height: 945 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "REQUEST CONTROL",
     title: ["You decide who", "can ask for PI."],
     body: [
@@ -64,10 +64,10 @@ const slides = [
   {
     output: "04-spells.jpg",
     source: "WoWScrnShot_082726_170044.jpg",
-    crop: { left: 2835, top: 125, width: 1160, height: 945 },
-    shot: { x: 885, y: 118, width: 1090, height: 888 },
+    crop: { left: 2659, top: 125, width: 1512, height: 945 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "COOLDOWN TRACKING",
-    title: ["Track the cooldowns", "that matter."],
+    title: ["Track the", "cooldowns that", "matter."],
     body: [
       "Enable built-in class cooldowns or add your own.",
       "Talent-aware notes explain special requirements.",
@@ -77,8 +77,8 @@ const slides = [
   {
     output: "05-macros.jpg",
     source: "WoWScrnShot_082726_170047.jpg",
-    crop: { left: 2835, top: 125, width: 1160, height: 945 },
-    shot: { x: 885, y: 118, width: 1090, height: 888 },
+    crop: { left: 2659, top: 125, width: 1512, height: 945 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "BUILT-IN MACROS",
     title: ["One click to the", "right target."],
     body: [
@@ -131,10 +131,10 @@ function bulletSvg(labels, x, y) {
 }
 
 function overlaySvg(slide) {
-  const titleStart = 315;
+  const titleStart = 365;
   const titleGap = 88;
   const bodyStart = titleStart + slide.title.length * titleGap + 28;
-  const accentY = titleStart - 58;
+  const accentY = 263;
   const extras = slide.pills
     ? pillSvg(slide.pills, 118, bodyStart + 130)
     : bulletSvg(slide.bullets, 120, bodyStart + 155);
@@ -157,10 +157,8 @@ function overlaySvg(slide) {
         </filter>
       </defs>
       <rect x="0" y="0" width="900" height="1152" fill="url(#leftShade)"/>
-      <rect x="${slide.shot.x - 14}" y="${slide.shot.y - 14}" width="${slide.shot.width + 28}" height="${slide.shot.height + 28}" rx="24" fill="#000" opacity="0.7" filter="url(#shadow)"/>
-      <rect x="${slide.shot.x - 5}" y="${slide.shot.y - 5}" width="${slide.shot.width + 10}" height="${slide.shot.height + 10}" rx="17" fill="none" stroke="#2bd3b2" stroke-width="3" opacity="0.9"/>
       <rect x="118" y="${accentY}" width="94" height="5" rx="2.5" fill="${COLORS.teal}"/>
-      <text x="118" y="248" fill="${COLORS.teal}" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="4">${escapeXml(slide.eyebrow)}</text>
+      <text x="118" y="244" fill="${COLORS.teal}" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="4">${escapeXml(slide.eyebrow)}</text>
       ${textLines(slide.title, 112, titleStart, { size: slide.eyebrow === "COOLDOWN TRACKING" ? 68 : 76, gap: titleGap, weight: 650, family: "Georgia, serif", spacing: -2 })}
       ${textLines(slide.body, 118, bodyStart, { size: 28, gap: 42, weight: 400, color: COLORS.body })}
       ${extras}
@@ -171,23 +169,23 @@ function overlaySvg(slide) {
   `);
 }
 
-async function roundedScreenshot(slide) {
+async function screenshotBuffer(slide) {
   const input = path.join(SCREENSHOTS, slide.source);
   const { width, height } = slide.shot;
   const image = await sharp(input)
     .extract(slide.crop)
     .resize(width, height, { fit: "fill" })
-    .linear(1.35, 8)
-    .modulate({ brightness: 1.04, saturation: 1.02 })
+    .gamma(1.8)
+    .linear(1.08, 4)
+    .modulate({ saturation: 1.06 })
     .sharpen({ sigma: 0.8 })
     .png()
     .toBuffer();
-  const mask = Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="${width}" height="${height}" rx="13" fill="white"/></svg>`);
-  return sharp(image).composite([{ input: mask, blend: "dest-in" }]).png().toBuffer();
+  return image;
 }
 
 async function buildSlide(slide) {
-  const screenshot = await roundedScreenshot(slide);
+  const screenshot = await screenshotBuffer(slide);
   const logo = await sharp(LOGO)
     .resize(126, 126, { fit: "cover" })
     .png()
