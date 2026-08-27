@@ -5,6 +5,10 @@
 .claude/
 CLAUDE.md
 
+# Libraries are supplied by the .pkgmeta externals at package time, so the
+# working copies here are local-only.
+Libs/
+
 # Branding tooling: build-gallery.js requires sharp, which unpacks native
 # binaries into node_modules/.
 node_modules/
