@@ -169,6 +169,25 @@ function overlaySvg(slide) {
   `);
 }
 
+let frameOverlayPromise;
+
+function frameOverlayBuffer() {
+  if (!frameOverlayPromise) {
+    const mask = Buffer.from(`
+      <svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 0 0 H ${WIDTH} V ${HEIGHT} H 0 Z M 780 205 H 1948 V 925 H 780 Z" fill="white" fill-rule="evenodd"/>
+      </svg>
+    `);
+    frameOverlayPromise = sharp(BACKGROUND)
+      .resize(WIDTH, HEIGHT, { fit: "cover" })
+      .ensureAlpha()
+      .composite([{ input: mask, blend: "dest-in" }])
+      .png()
+      .toBuffer();
+  }
+  return frameOverlayPromise;
+}
+
 async function screenshotBuffer(slide) {
   const input = path.join(SCREENSHOTS, slide.source);
   const { width, height } = slide.shot;
@@ -186,6 +205,7 @@ async function screenshotBuffer(slide) {
 
 async function buildSlide(slide) {
   const screenshot = await screenshotBuffer(slide);
+  const frameOverlay = await frameOverlayBuffer();
   const logo = await sharp(LOGO)
     .resize(126, 126, { fit: "cover" })
     .png()
@@ -196,8 +216,9 @@ async function buildSlide(slide) {
     .modulate({ brightness: 0.84, saturation: 0.9 })
     .composite([
       { input: screenshot, left: slide.shot.x, top: slide.shot.y },
+      { input: frameOverlay, left: 0, top: 0 },
       { input: overlaySvg(slide), left: 0, top: 0 },
-      { input: logo, left: 112, top: 76 },
+      { input: logo, left: 112, top: 76, blend: "screen" },
     ])
     .jpeg({ quality: 92, chromaSubsampling: "4:4:4", mozjpeg: true })
     .toFile(path.join(OUT, slide.output));
