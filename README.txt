@@ -1,4 +1,4 @@
-PI Alert 1.0.49-beta
+PI Alert 1.0.50-beta
 ====================
 
 A Power Infusion request assistant for World of Warcraft Midnight 12.1.
@@ -126,6 +126,13 @@ COMMANDS
 /pia test       Show a test request
 /pia reset      Reset settings
 /pia help       Show the formatted command list
+
+1.0.50-beta
+-----------
+- Updated the preset spell list and aura IDs for cooldowns that create a
+  trackable player buff.
+- Added an explanatory note beneath talent-dependent spells so users can see
+  why those alerts require a particular talent.
 
 1.0.49-beta
 -----------

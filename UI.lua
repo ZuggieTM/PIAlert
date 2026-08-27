@@ -968,6 +968,14 @@ function UI:BuildSpellsPage()
         name:SetPoint("RIGHT", -150, 0)
         row.name = name
 
+        local description = CreateLabel(row, "", 9, C.muted)
+        description:SetPoint("LEFT", icon, "RIGHT", 9, -8)
+        description:SetPoint("RIGHT", -150, -8)
+        description:SetJustifyH("LEFT")
+        description:SetWordWrap(false)
+        description:Hide()
+        row.description = description
+
         local id = CreateLabel(row, "", 10, C.muted)
         id:SetPoint("RIGHT", -46, 0)
         id:SetJustifyH("RIGHT")
@@ -1104,9 +1112,17 @@ function UI:BuildSpellEntries()
         local matches = {}
         for _, spell in ipairs(NS.PRESET_SPELLS[classToken] or {}) do
             local liveName = NS:GetSpellName(spell.id, spell.label)
-            local haystack = (className .. " " .. liveName .. " " .. tostring(spell.id)):lower()
+            local description = spell.description
+            local haystack = (className .. " " .. liveName .. " " .. tostring(spell.id)
+                .. " " .. tostring(description or "")):lower()
             if query == "" or haystack:find(query, 1, true) then
-                matches[#matches + 1] = { type = "spell", id = spell.id, label = liveName, class = classToken }
+                matches[#matches + 1] = {
+                    type = "spell",
+                    id = spell.id,
+                    label = liveName,
+                    description = description,
+                    class = classToken,
+                }
             end
         end
         if #matches > 0 then
@@ -1161,6 +1177,7 @@ function UI:RenderSpellRows()
             row.box:Hide()
             row.icon:Hide()
             row.name:Hide()
+            row.description:Hide()
             row.id:Hide()
             row.remove:Hide()
 
@@ -1192,6 +1209,7 @@ function UI:RenderSpellRows()
             row.box:Hide()
             row.icon:Hide()
             row.name:Hide()
+            row.description:Hide()
             row.id:Hide()
             row.remove:Hide()
             ApplySpellRowBackground(row, false)
@@ -1211,7 +1229,12 @@ function UI:RenderSpellRows()
             row.remove:SetShown(entry.customIndex ~= nil)
             row.icon:SetTexture(NS:GetSpellIcon(entry.id))
             row.icon:SetTexCoord(0, 1, 0, 1)
+            row.name:ClearAllPoints()
+            row.name:SetPoint("LEFT", row.icon, "RIGHT", 9, entry.description and 6 or 0)
+            row.name:SetPoint("RIGHT", -150, entry.description and 6 or 0)
             row.name:SetText(entry.label)
+            row.description:SetText(entry.description or "")
+            row.description:SetShown(entry.description ~= nil)
             row.id:SetText(tostring(entry.id))
             local enabled = NS.db.spells[entry.id] == true
             row.check:SetShown(enabled)
