@@ -140,6 +140,9 @@ NS.DEFAULTS = {
     macro = {
         mode = "MOUSEOVER", -- PLAYER, FOCUS, MOUSEOVER
         target = "",
+        -- Set when combat blocked a macro write; replayed on PLAYER_REGEN_ENABLED
+        -- or at the next login.
+        pendingUpdate = false,
     },
 
     spells = enabledSpells,

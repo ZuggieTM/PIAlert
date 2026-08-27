@@ -98,14 +98,26 @@ function NS:FindGeneralPIMacro()
 end
 
 function NS:CreateOrUpdatePIMacro()
-    if type(InCombatLockdown) == "function" and InCombatLockdown() then
-        self:Print("The PI Alert macro cannot be created or updated during combat.")
-        return false
-    end
     if type(CreateMacro) ~= "function" or type(EditMacro) ~= "function" then
         self:Print("The macro API is currently unavailable.")
         return false
     end
+
+    -- CreateMacro and EditMacro are #nocombat. The saved settings are already
+    -- current, so record that the macro body still needs writing and replay it
+    -- once combat ends rather than discarding the request.
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        if self.db then
+            self.db.macro = self.db.macro or {}
+            self.db.macro.pendingUpdate = true
+        end
+        self:Print("Combat blocks macro edits. PI Alert will update the macro when you leave combat.")
+        return false
+    end
+
+    -- Past the combat gate this attempt settles the request either way, so the
+    -- flag is cleared here instead of only on success.
+    if self.db and self.db.macro then self.db.macro.pendingUpdate = false end
 
     local existingIndex = self:FindGeneralPIMacro()
     local ok, macroIndex
@@ -127,19 +139,33 @@ end
 function NS:SetPIMacroMode(mode, target)
     if not self.db then return false end
     if mode ~= "PLAYER" and mode ~= "FOCUS" and mode ~= "MOUSEOVER" then return false end
-    if type(InCombatLockdown) == "function" and InCombatLockdown() then
-        self:Print("The PI Alert macro cannot be changed during combat. Try again after combat.")
-        return false
-    end
-    self.db.macro = self.db.macro or {}
+
     local normalized = mode == "PLAYER" and self:NormalizeMacroTarget(target) or nil
     if mode == "PLAYER" and not normalized then
         self:Print("Enter a valid player name, optionally followed by -Realm.")
         return false
     end
+
+    -- Recording the choice is an ordinary table write and is safe in combat;
+    -- only the macro API itself is restricted. Saving first means a selection
+    -- made mid-fight is never silently thrown away.
+    self.db.macro = self.db.macro or {}
     self.db.macro.mode = mode
     self.db.macro.target = normalized or ""
-    return self:CreateOrUpdatePIMacro()
+
+    -- True means the selection was accepted, not that the macro was written. A
+    -- combat-queued write still counts, so callers close their dialog.
+    local written = self:CreateOrUpdatePIMacro()
+    return written or self.db.macro.pendingUpdate == true
+end
+
+-- Replays a macro write that combat blocked. The flag lives in the database so
+-- that logging out before combat ends cannot leave the saved settings and the
+-- macro permanently disagreeing.
+function NS:FlushPendingPIMacro()
+    if not self.db or not self.db.macro or not self.db.macro.pendingUpdate then return end
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then return end
+    self:CreateOrUpdatePIMacro()
 end
 
 function NS:SetPIMacroTarget(target)
@@ -575,6 +601,7 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
 eventFrame:RegisterEvent("SPELLS_CHANGED")
 eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
     if event == "ADDON_LOADED" then
@@ -595,6 +622,14 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     end
 
     if not NS.db then return end
+
+    -- Macro edits are blocked in combat, so replay a queued write the moment
+    -- combat ends, and again at login in case the session ended first.
+    if event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_LOGIN"
+        or event == "PLAYER_ENTERING_WORLD" then
+        NS:FlushPendingPIMacro()
+        if event == "PLAYER_REGEN_ENABLED" then return end
+    end
 
     if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD"
         or event == "SPELLS_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" then
