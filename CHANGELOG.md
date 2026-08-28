@@ -2,8 +2,8 @@
 
 ## 1.1.0
 
-Power Infusion sounds now work on their own, the addon has an icon, and you can
-set a macro target mid-fight.
+Power Infusion sounds now work on their own, the addon has an icon, and a macro
+target chosen during combat is remembered instead of thrown away.
 
 ### New
 
@@ -16,11 +16,11 @@ set a macro target mid-fight.
 
 ### Fixed
 
-- **Setting a macro target during combat no longer does nothing.** World of
-  Warcraft blocks macro edits in combat, so the choice used to be discarded with
-  only a chat message. It is now saved straight away and the macro updates the
-  moment you leave combat. Log out before combat ends and it applies at your next
-  login instead.
+- **A macro target chosen during combat is no longer thrown away.** World of
+  Warcraft does not allow macros to be edited in combat, and PI Alert used to
+  discard the whole request with only a chat message. Your choice is now saved
+  immediately and the macro itself is written the moment you leave combat. Log out
+  before combat ends and it is applied at your next login instead.
 - **"Set as PI Alert macro target" is a plain action, not a toggle.** It always
   sets the named target, and the macro keeps mouseover as its fallback.
 
