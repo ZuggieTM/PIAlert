@@ -8,7 +8,7 @@ NS.UI = UI
 -- ~37% of both images) rising through a purple ramp (#200040, #400080, #6020c0)
 -- to lavender highlights (#c080ff), with the star's gold as the only warm note.
 local C = {
-    bg = {0.020, 0.016, 0.055, 0.98},           -- #05040e
+    bg = {0.004, 0.004, 0.035, 0.98},           -- #010109, matched to the logo edge so the icon does not read as a square
     panel = {0.055, 0.031, 0.110, 0.98},        -- #0e081c
     panel2 = {0.086, 0.051, 0.165, 0.98},       -- #160d2a
     sidebar = {0.035, 0.020, 0.078, 1},         -- #090514
