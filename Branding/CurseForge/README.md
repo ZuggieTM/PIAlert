@@ -6,9 +6,10 @@ This folder contains the reusable assets and build script for the PI Alert Curse
 
 The script expects the six original World of Warcraft screenshots in the local retail screenshot folder. It deliberately composites the real addon interface instead of recreating UI text with generative tools.
 
-```powershell
-$env:NODE_PATH = "C:\Users\jband\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules"
-& "C:\Users\jband\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe" .\Branding\CurseForge\build-gallery.js
+```bash
+cd Branding/CurseForge
+npm install
+node build-gallery.js
 ```
 
 Final 2048×1152 JPEGs are written to `Branding/CurseForge/gallery`.
