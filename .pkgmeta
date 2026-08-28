@@ -32,6 +32,3 @@ ignore:
   - README.md
   - README.txt
   - CHANGELOG.md
-  # Vendored but never loaded: LibCustomGlow-1.0 is absent from PIAlert.toc
-  # and unreferenced in Lua. Remove this line if it is ever wired up.
-  - Libs/LibCustomGlow-1.0
