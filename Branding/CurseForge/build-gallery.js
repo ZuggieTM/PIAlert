@@ -29,7 +29,7 @@ const slides = [
     eyebrow: "POWER INFUSION ASSISTANT",
     title: ["Give PI to the", "right player."],
     body: [
-      "PIAlert turns whispers and major cooldowns",
+      "PI Alert turns whispers and major cooldowns",
       "into clear, immediate targeting cues.",
     ],
     pills: ["Whispers", "Cooldowns", "Raidframes"],
@@ -178,7 +178,7 @@ function overlaySvg(slide) {
       ${extras}
       ${slide.caption ? `<text x="118" y="1002" fill="${COLORS.white}" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="600">${escapeXml(slide.caption)}</text>` : ""}
       <rect x="118" y="1070" width="560" height="3" fill="url(#footer)"/>
-      <text x="118" y="1110" fill="${COLORS.muted}" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="600" letter-spacing="2">PIALERT  •  /PIA</text>
+      <text x="118" y="1110" fill="${COLORS.muted}" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="600" letter-spacing="2">PI ALERT  •  /PIA</text>
     </svg>
   `);
 }

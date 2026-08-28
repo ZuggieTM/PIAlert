@@ -1,6 +1,6 @@
-# PIAlert CurseForge gallery
+# PI Alert CurseForge gallery
 
-This folder contains the reusable assets and build script for the PIAlert CurseForge gallery.
+This folder contains the reusable assets and build script for the PI Alert CurseForge gallery.
 
 ## Build
 
