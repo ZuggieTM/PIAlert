@@ -2,7 +2,7 @@
 ## Title: PI Alert
 ## Notes: Power Infusion alerts from whispers and allied cooldown activations.
 ## Author: Zuggie
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariables: PIAlertDB
 ## IconTexture: Interface\AddOns\PIAlert\Media\pialert-icon.tga
 
