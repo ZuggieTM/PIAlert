@@ -42,12 +42,12 @@ end
 NS.Clamp = Clamp
 
 function NS:Print(message)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff35e6b2PI Alert:|r " .. tostring(message))
+    DEFAULT_CHAT_FRAME:AddMessage("|cffc080ffPI Alert:|r " .. tostring(message))
 end
 
 function NS:Debug(message)
     if self.db and self.db.debug then
-        DEFAULT_CHAT_FRAME:AddMessage("|cff71d9ffPI Alert DEBUG:|r " .. tostring(message))
+        DEFAULT_CHAT_FRAME:AddMessage("|cff9d92baPI Alert DEBUG:|r " .. tostring(message))
     end
 end
 
@@ -495,10 +495,10 @@ function NS:InitializeModules()
 end
 
 function NS:PrintSlashHelp()
-    local headerColor = CreateColor(0.333, 0.875, 1.000, 1)
-    local commandColor = CreateColor(0.208, 0.902, 0.698, 1)
-    local separatorColor = CreateColor(0.510, 0.580, 0.620, 1)
-    local textColor = CreateColor(0.910, 0.941, 0.953, 1)
+    local headerColor = CreateColor(0.753, 0.502, 1.000, 1)   -- #c080ff
+    local commandColor = CreateColor(0.957, 0.788, 0.392, 1)  -- #f4c964
+    local separatorColor = CreateColor(0.616, 0.573, 0.729, 1) -- #9d92ba
+    local textColor = CreateColor(0.949, 0.937, 0.988, 1)     -- #f2effc
 
     local function Colorize(color, value)
         return color:WrapTextInColorCode(value)

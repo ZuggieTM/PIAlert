@@ -3,24 +3,24 @@ local ADDON_NAME, NS = ...
 local UI = {}
 NS.UI = UI
 
--- Palette taken from the CurseForge branding art: a violet-leaning charcoal
--- base, the brand teal for anything interactive, violet for structure, and the
--- gold from the mark's star for emphasis. Hex equivalents are in
--- Branding/CurseForge/build-gallery.js.
+-- Palette sampled from the branding art in Branding/CurseForge/assets. The mark
+-- and backdrop are built almost entirely from a near-black blue-violet (#000020,
+-- ~37% of both images) rising through a purple ramp (#200040, #400080, #6020c0)
+-- to lavender highlights (#c080ff), with the star's gold as the only warm note.
 local C = {
-    bg = {0.027, 0.043, 0.075, 0.98},
-    panel = {0.051, 0.082, 0.133, 0.98},        -- #0d1522
-    panel2 = {0.071, 0.106, 0.169, 0.98},
-    sidebar = {0.039, 0.063, 0.106, 1},
-    border = {0.180, 0.172, 0.322, 0.95},
-    borderSoft = {0.125, 0.122, 0.227, 0.80},
-    accent = {0.149, 0.839, 0.702, 1},          -- #26d6b3
-    accentDim = {0.071, 0.247, 0.235, 1},       -- #123f3c
-    violet = {0.659, 0.549, 1.000, 1},          -- #a88cff
-    violetDim = {0.259, 0.216, 0.400, 1},
+    bg = {0.020, 0.016, 0.055, 0.98},           -- #05040e
+    panel = {0.055, 0.031, 0.110, 0.98},        -- #0e081c
+    panel2 = {0.086, 0.051, 0.165, 0.98},       -- #160d2a
+    sidebar = {0.035, 0.020, 0.078, 1},         -- #090514
+    border = {0.290, 0.145, 0.561, 0.95},       -- #4a258f
+    borderSoft = {0.180, 0.090, 0.361, 0.80},   -- #2e175c
+    accent = {0.753, 0.502, 1.000, 1},          -- #c080ff
+    accentDim = {0.376, 0.125, 0.753, 1},       -- #6020c0
+    violet = {0.753, 0.502, 1.000, 1},
+    violetDim = {0.251, 0.125, 0.502, 1},
     gold = {0.957, 0.788, 0.392, 1},            -- #f4c964
-    text = {0.957, 0.969, 0.984, 1},            -- #f4f7fb
-    muted = {0.510, 0.584, 0.655, 1},           -- #8295a7
+    text = {0.949, 0.937, 0.988, 1},            -- #f2effc
+    muted = {0.616, 0.573, 0.729, 1},           -- #9d92ba
     danger = {0.95, 0.35, 0.35, 1},
     warning = {0.957, 0.788, 0.392, 1},
 }
@@ -69,11 +69,11 @@ local function CreateButton(parent, text, width, height, accent)
 
     btn:SetScript("OnEnter", function(self)
         self:SetBackdropBorderColor(unpack(C.accent))
-        if accent then self:SetBackdropColor(0.106, 0.361, 0.325, 1) end
+        if accent then self:SetBackdropColor(0.361, 0.176, 0.667, 1) end
     end)
     btn:SetScript("OnLeave", function(self)
         self:SetBackdropBorderColor(unpack(accent and C.accentDim or C.border))
-        if accent then self:SetBackdropColor(0.071, 0.247, 0.235, 1) end
+        if accent then self:SetBackdropColor(0.251, 0.110, 0.478, 1) end
     end)
 
     function btn:SetLabel(value)
@@ -371,7 +371,7 @@ function UI:CreateMainFrame()
     if type(accent.SetGradient) == "function" and type(CreateColor) == "function" then
         accent:SetColorTexture(1, 1, 1, 1)
         pcall(accent.SetGradient, accent, "HORIZONTAL",
-            CreateColor(C.violet[1], C.violet[2], C.violet[3], 1),
+            CreateColor(C.accentDim[1], C.accentDim[2], C.accentDim[3], 1),
             CreateColor(C.accent[1], C.accent[2], C.accent[3], 1))
     end
 
