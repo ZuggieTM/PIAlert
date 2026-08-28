@@ -42,12 +42,7 @@ local function IsInCombatLockdown()
     return type(_G.InCombatLockdown) == "function" and _G.InCombatLockdown() == true
 end
 
-local function Clamp(value, minValue, maxValue, fallback)
-    value = tonumber(value) or fallback or minValue
-    if value < minValue then value = minValue end
-    if value > maxValue then value = maxValue end
-    return value
-end
+local Clamp = NS.Clamp
 
 local function CreateStaticBorder(frame)
     local border = { inner = {}, outer = {} }

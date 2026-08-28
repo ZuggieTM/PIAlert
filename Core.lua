@@ -31,6 +31,16 @@ local function MergeDefaults(target, defaults)
 end
 NS.MergeDefaults = MergeDefaults
 
+-- Shared by the glow, swipe and icon code, which all clamp user-entered sizes
+-- and speeds into a safe range.
+local function Clamp(value, minValue, maxValue, fallback)
+    value = tonumber(value) or fallback or minValue
+    if value < minValue then value = minValue end
+    if value > maxValue then value = maxValue end
+    return value
+end
+NS.Clamp = Clamp
+
 function NS:Print(message)
     DEFAULT_CHAT_FRAME:AddMessage("|cff35e6b2PI Alert:|r " .. tostring(message))
 end
