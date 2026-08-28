@@ -17,7 +17,8 @@ PIAlert is a focused request assistant for Priests in World of Warcraft Retail. 
 - Power Infusion or tracked-spell icons directly on the requester.
 - Secure cooldown swipes that follow the tracked aura or whisper-alert duration.
 - A configurable, movable central Power Infusion icon.
-- Six original included request sounds, plus Blizzard and LibSharedMedia sounds.
+- Six original included request sounds, plus any Blizzard or LibSharedMedia sound.
+- All six sounds are registered **with** LibSharedMedia, so WeakAuras and your other addons can use them too.
 
 Whisper sounds are intentionally limited to accepted whisper requests. Tracked spell alerts remain visual-only to work safely with World of Warcraft's protected allied-aura system.
 

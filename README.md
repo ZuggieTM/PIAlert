@@ -67,28 +67,13 @@ Custom spells are treated as aura spell IDs for secure allied tracking.
 
 ## Alert options
 
-### Raidframe settings
+The **Alerts** page has three groups:
 
-- Enable or disable raidframe glow.
-- Choose Pixel Glow, AutoCast Glow, or Button Glow.
-- Configure glow color, speed, lines, thickness, or scale where applicable.
-- Use a custom glow color or the requester's class color.
-- Show a Power Infusion or tracked spell icon.
-- Enable or disable the icon cooldown swipe.
+- **Raidframe** — glow style (Pixel, AutoCast, or Button) with configurable colour, speed, lines and thickness; a custom colour or the requester's class colour; and an optional Power Infusion or tracked-spell icon with cooldown swipe.
+- **Aura icon** — the movable central Power Infusion icon, its size, and an unlock toggle for positioning.
+- **Whisper** — whether request sounds play and which sound is used, how long whisper alerts stay visible, and whether they fire while Power Infusion is on cooldown.
 
-Whisper requests fall back to the Power Infusion icon because they do not have a tracked spell aura.
-
-### Aura icon settings
-
-- Enable or disable the movable central Power Infusion icon.
-- Choose its size and unlock it for positioning.
-
-### Whisper settings
-
-- Enable or disable whisper-request sounds.
-- Choose among six included PIAlert sounds—including a single-note pulse and two spoken “P I” voices—or use a Blizzard or LibSharedMedia sound.
-- Configure how long whisper alerts remain visible.
-- Allow or suppress whisper alerts while Power Infusion is on cooldown.
+Whisper requests fall back to the Power Infusion icon because they have no tracked spell aura.
 
 ## Power Infusion macros
 
@@ -149,7 +134,7 @@ If an alert does not appear:
 1. Confirm the requester is currently in your party or raid and is allowed by the Requests settings.
 2. Confirm the spell is enabled and that it creates one of the configured caster buffs for the player's selected talents.
 3. Confirm the desired visual is enabled under Alerts.
-4. Use `/pia test` to verify the visual configuration and raidframe resolution.
+4. Use `/pia test` to preview the configured request visuals and sound.
 5. Report reproducible problems through [GitHub Issues](https://github.com/ZuggieTM/PIAlert/issues).
 
 Detailed development history is retained in `README.txt`.
