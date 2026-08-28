@@ -3,21 +3,40 @@ local ADDON_NAME, NS = ...
 local UI = {}
 NS.UI = UI
 
+-- Palette taken from the CurseForge branding art: a violet-leaning charcoal
+-- base, the brand teal for anything interactive, violet for structure, and the
+-- gold from the mark's star for emphasis. Hex equivalents are in
+-- Branding/CurseForge/build-gallery.js.
 local C = {
-    bg = {0.025, 0.037, 0.052, 0.98},
-    panel = {0.045, 0.062, 0.082, 0.98},
-    panel2 = {0.058, 0.078, 0.100, 0.98},
-    border = {0.16, 0.22, 0.27, 0.95},
-    borderSoft = {0.12, 0.17, 0.21, 0.80},
-    accent = {0.12, 0.90, 0.68, 1},
-    accentDim = {0.08, 0.55, 0.43, 1},
-    text = {0.92, 0.96, 0.98, 1},
-    muted = {0.58, 0.67, 0.72, 1},
+    bg = {0.027, 0.043, 0.075, 0.98},
+    panel = {0.051, 0.082, 0.133, 0.98},        -- #0d1522
+    panel2 = {0.071, 0.106, 0.169, 0.98},
+    sidebar = {0.039, 0.063, 0.106, 1},
+    border = {0.180, 0.172, 0.322, 0.95},
+    borderSoft = {0.125, 0.122, 0.227, 0.80},
+    accent = {0.149, 0.839, 0.702, 1},          -- #26d6b3
+    accentDim = {0.071, 0.247, 0.235, 1},       -- #123f3c
+    violet = {0.659, 0.549, 1.000, 1},          -- #a88cff
+    violetDim = {0.259, 0.216, 0.400, 1},
+    gold = {0.957, 0.788, 0.392, 1},            -- #f4c964
+    text = {0.957, 0.969, 0.984, 1},            -- #f4f7fb
+    muted = {0.510, 0.584, 0.655, 1},           -- #8295a7
     danger = {0.95, 0.35, 0.35, 1},
-    warning = {0.95, 0.72, 0.26, 1},
+    warning = {0.957, 0.788, 0.392, 1},
 }
 
 local SOUND_PREVIEW_ICON = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\sound-preview.tga"
+local LOGO_ICON = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\pialert-icon.tga"
+
+-- The TOC is the single source of truth for the version, so the panel cannot
+-- drift out of step with the packaged addon.
+local function AddonVersion()
+    local getter = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    if type(getter) ~= "function" then return "" end
+    local ok, value = pcall(getter, ADDON_NAME, "Version")
+    if ok and type(value) == "string" and value ~= "" then return "v" .. value end
+    return ""
+end
 
 local function SetBackdrop(frame, bg, border)
     frame:SetBackdrop({
@@ -50,11 +69,11 @@ local function CreateButton(parent, text, width, height, accent)
 
     btn:SetScript("OnEnter", function(self)
         self:SetBackdropBorderColor(unpack(C.accent))
-        if accent then self:SetBackdropColor(0.08, 0.38, 0.30, 1) end
+        if accent then self:SetBackdropColor(0.106, 0.361, 0.325, 1) end
     end)
     btn:SetScript("OnLeave", function(self)
         self:SetBackdropBorderColor(unpack(accent and C.accentDim or C.border))
-        if accent then self:SetBackdropColor(0.07, 0.30, 0.25, 1) end
+        if accent then self:SetBackdropColor(0.071, 0.247, 0.235, 1) end
     end)
 
     function btn:SetLabel(value)
@@ -341,14 +360,28 @@ function UI:CreateMainFrame()
     top:SetPoint("TOPRIGHT", 0, 0)
     top:SetHeight(62)
 
+    -- Violet-to-teal underline, echoing the mark's violet ring resolving into
+    -- the brand accent. SetGradient is guarded so an older client just gets the
+    -- flat accent line instead of an error.
     local accent = top:CreateTexture(nil, "BACKGROUND")
     accent:SetPoint("BOTTOMLEFT", 0, 0)
     accent:SetPoint("BOTTOMRIGHT", 0, 0)
     accent:SetHeight(2)
     accent:SetColorTexture(unpack(C.accentDim))
+    if type(accent.SetGradient) == "function" and type(CreateColor) == "function" then
+        accent:SetColorTexture(1, 1, 1, 1)
+        pcall(accent.SetGradient, accent, "HORIZONTAL",
+            CreateColor(C.violet[1], C.violet[2], C.violet[3], 1),
+            CreateColor(C.accent[1], C.accent[2], C.accent[3], 1))
+    end
+
+    local logo = top:CreateTexture(nil, "ARTWORK")
+    logo:SetTexture(LOGO_ICON)
+    logo:SetSize(34, 34)
+    logo:SetPoint("LEFT", 18, 4)
 
     local title = CreateLabel(top, "PI Alert", 20, C.text)
-    title:SetPoint("LEFT", 22, 7)
+    title:SetPoint("LEFT", 62, 7)
     local subtitle = CreateLabel(top, "Power Infusion request assistant", 10, C.muted)
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
 
@@ -364,8 +397,12 @@ function UI:CreateMainFrame()
     sidebar:SetPoint("TOPLEFT", 0, -62)
     sidebar:SetPoint("BOTTOMLEFT", 0, 0)
     sidebar:SetWidth(170)
-    SetBackdrop(sidebar, {0.032, 0.047, 0.064, 1}, {0.032, 0.047, 0.064, 1})
+    SetBackdrop(sidebar, C.sidebar, C.sidebar)
     self.sidebar = sidebar
+
+    -- Version in the sidebar footer. Read from the TOC so it cannot drift.
+    local versionLabel = CreateLabel(sidebar, AddonVersion(), 10, C.muted)
+    versionLabel:SetPoint("BOTTOMLEFT", 16, 12)
 
     local content = CreateFrame("Frame", nil, frame)
     content:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 24, -20)
@@ -383,7 +420,7 @@ function UI:CreateMainFrame()
 
         local selection = btn:CreateTexture(nil, "BACKGROUND")
         selection:SetAllPoints()
-        selection:SetColorTexture(0.10, 0.80, 0.62, 0)
+        selection:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0)
         btn.selection = selection
 
         local marker = btn:CreateTexture(nil, "ARTWORK")
@@ -430,7 +467,7 @@ function UI:SelectPage(name)
     for pageName, page in pairs(self.pages) do page:SetShown(pageName == name) end
     for navName, btn in pairs(self.navButtons) do
         local active = navName == name
-        btn.selection:SetColorTexture(0.10, 0.80, 0.62, active and 0.11 or 0)
+        btn.selection:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], active and 0.13 or 0)
         btn.marker:SetShown(active)
         btn.label:SetTextColor(unpack(active and C.accent or C.muted))
     end
