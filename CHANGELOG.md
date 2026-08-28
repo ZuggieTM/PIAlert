@@ -1,0 +1,39 @@
+# Changelog
+
+## 1.1.0
+
+Power Infusion sounds now work on their own, the addon has an icon, and you can
+set a macro target mid-fight.
+
+### New
+
+- **LibSharedMedia is now bundled.** The shared-media sound list works without
+  another addon supplying the library, and PI Alert's six included sounds are
+  registered with LibSharedMedia so WeakAuras and other addons can use them too.
+- **Addon-list icon.** PI Alert now shows its mark in the in-game AddOns list.
+- **Right-click menu header.** PI Alert's entries sit under their own heading in
+  the unit menu instead of loose among Blizzard's.
+
+### Fixed
+
+- **Setting a macro target during combat no longer does nothing.** World of
+  Warcraft blocks macro edits in combat, so the choice used to be discarded with
+  only a chat message. It is now saved straight away and the macro updates the
+  moment you leave combat. Log out before combat ends and it applies at your next
+  login instead.
+- **"Set as PI Alert macro target" is a plain action, not a toggle.** It always
+  sets the named target, and the macro keeps mouseover as its fallback.
+
+### Under the hood
+
+- Libraries are fetched from upstream when the addon is packaged rather than
+  committed, so LibStub, CallbackHandler, LibSharedMedia and LibGetFrame all ship
+  current.
+- Removed an unused copy of LibCustomGlow that was never loaded.
+- Folded four identical copies of a helper function into one.
+- Rewrote the README and the CurseForge description, and settled on "PI Alert"
+  as the name everywhere it is read.
+
+## 1.0.0
+
+First release.
