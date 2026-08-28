@@ -8,12 +8,7 @@ local DASH_H = MEDIA .. "secure-dash-h.tga"
 local DASH_V = MEDIA .. "secure-dash-v.tga"
 local MASK_TEX = "Interface\\Buttons\\WHITE8X8"
 
-local function Clamp(value, minValue, maxValue, fallback)
-    value = tonumber(value) or fallback or minValue
-    if value < minValue then value = minValue end
-    if value > maxValue then value = maxValue end
-    return value
-end
+local Clamp = NS.Clamp
 
 local function StopPixel(frame)
     local d = frame and frame._pipSecurePixel

@@ -1,0 +1,11 @@
+{
+  "name": "pialert-curseforge-gallery",
+  "private": true,
+  "description": "Build dependencies for the PI Alert CurseForge gallery images.",
+  "scripts": {
+    "build": "node build-gallery.js"
+  },
+  "dependencies": {
+    "sharp": "^0.35.4"
+  }
+}

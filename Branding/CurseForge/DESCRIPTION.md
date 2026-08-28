@@ -1,8 +1,8 @@
-# PIAlert
+# PI Alert
 
 **Power Infusion requests, impossible to miss.**
 
-PIAlert is a focused request assistant for Priests in World of Warcraft Retail. It turns accepted whispers and tracked allied cooldowns into clear raidframe cues, so you can find the right player and cast Power Infusion without losing focus on the fight.
+PI Alert is a focused request assistant for Priests in World of Warcraft Retail. It turns accepted whispers and tracked allied cooldowns into clear raidframe cues, so you can find the right player and cast Power Infusion without losing focus on the fight.
 
 ## Request your way
 
@@ -17,13 +17,14 @@ PIAlert is a focused request assistant for Priests in World of Warcraft Retail. 
 - Power Infusion or tracked-spell icons directly on the requester.
 - Secure cooldown swipes that follow the tracked aura or whisper-alert duration.
 - A configurable, movable central Power Infusion icon.
-- Six original included request sounds, plus Blizzard and LibSharedMedia sounds.
+- Six original included request sounds, plus any Blizzard or LibSharedMedia sound.
+- All six sounds are registered **with** LibSharedMedia, so WeakAuras and your other addons can use them too.
 
 Whisper sounds are intentionally limited to accepted whisper requests. Tracked spell alerts remain visual-only to work safely with World of Warcraft's protected allied-aura system.
 
 ## Know which cooldowns matter
 
-PIAlert includes organized presets for major class cooldowns and supports custom aura spell IDs. Talent-dependent entries explain their requirements in the spell list, and cooldowns with multiple valid caster buffs can track multiple aura IDs.
+PI Alert includes organized presets for major class cooldowns and supports custom aura spell IDs. Talent-dependent entries explain their requirements in the spell list, and cooldowns with multiple valid caster buffs can track multiple aura IDs.
 
 ## Target faster
 
@@ -36,7 +37,7 @@ Right-click any party or raid member and use the dedicated **PI Alert** section 
 
 ## Raidframe support
 
-PIAlert supports Blizzard party and raidframes and resolves frames from popular addons through its bundled LibGetFrame integration, including:
+PI Alert supports Blizzard party and raidframes and resolves frames from popular addons through its bundled LibGetFrame integration, including:
 
 - Cell
 - EllesmereUI
@@ -46,7 +47,7 @@ PIAlert supports Blizzard party and raidframes and resolves frames from popular 
 
 ## Quick setup
 
-1. Type `/pia` to open PIAlert.
+1. Type `/pia` to open PI Alert.
 2. Choose how requests are accepted under **Requests**.
 3. Enable the spells and visuals you want under **Spells** and **Alerts**.
 4. Use `/pia test` to preview your alert setup.
@@ -66,4 +67,4 @@ PIAlert supports Blizzard party and raidframes and resolves frames from popular 
 - No required external dependencies.
 - Settings are account-wide and retained between updates in `PIAlertDB`.
 
-Found a reproducible issue or have a feature request? Please use the [PIAlert issue tracker](https://github.com/ZuggieTM/PIAlert/issues).
+Found a reproducible issue or have a feature request? Please use the [PI Alert issue tracker](https://github.com/ZuggieTM/PIAlert/issues).
