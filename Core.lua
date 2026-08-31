@@ -300,6 +300,68 @@ function NS:IsCurrentSpecEnabled()
         and self.db.activation[role] == true
 end
 
+function NS:GetContentSetting(group, item)
+    if not self.db or not self.db.content then return false end
+    if group == "OPEN_WORLD" then return self.db.content.OPEN_WORLD == true end
+    return self.db.content[group] and self.db.content[group][item] == true
+end
+
+function NS:SetContentSetting(group, item, enabled)
+    if not self.db then return end
+    self.db.content = self.db.content or {}
+    if group == "OPEN_WORLD" then
+        self.db.content.OPEN_WORLD = enabled and true or false
+        return
+    end
+    self.db.content[group] = self.db.content[group] or {}
+    self.db.content[group][item] = enabled and true or false
+end
+
+local function CallBoolean(fn)
+    if type(fn) ~= "function" then return false end
+    local ok, value = pcall(fn)
+    return ok and value == true
+end
+
+function NS:GetCurrentContent()
+    if type(GetInstanceInfo) ~= "function" then return nil end
+    local _, instanceType, difficultyID = GetInstanceInfo()
+    difficultyID = tonumber(difficultyID) or 0
+
+    if instanceType == "none" then
+        return "OPEN_WORLD", "OPEN_WORLD"
+    elseif instanceType == "party" then
+        local challengeActive = C_ChallengeMode and CallBoolean(C_ChallengeMode.IsChallengeModeActive)
+        if challengeActive or difficultyID == 8 then return "DUNGEON", "MYTHIC_PLUS" end
+        if difficultyID == 23 then return "DUNGEON", "MYTHIC" end
+        if difficultyID == 2 then return "DUNGEON", "HEROIC" end
+        if difficultyID == 24 then return "DUNGEON", "TIMEWALKING" end
+        if difficultyID == 1 or difficultyID == 205 then return "DUNGEON", "NORMAL" end
+    elseif instanceType == "raid" then
+        if difficultyID == 17 or difficultyID == 7 then return "RAID", "LFR" end
+        if difficultyID == 14 or difficultyID == 3 or difficultyID == 4 or difficultyID == 5 or difficultyID == 9 then return "RAID", "NORMAL" end
+        if difficultyID == 15 or difficultyID == 6 then return "RAID", "HEROIC" end
+        if difficultyID == 16 or difficultyID == 233 then return "RAID", "MYTHIC" end
+        if difficultyID == 33 or difficultyID == 151 then return "RAID", "TIMEWALKING" end
+    elseif instanceType == "pvp" then
+        local ratedBG = C_PvP and CallBoolean(C_PvP.IsRatedBattleground)
+        return "PVP", ratedBG and "RATED_BATTLEGROUND" or "BATTLEGROUND"
+    elseif instanceType == "arena" then
+        if C_PvP and CallBoolean(C_PvP.IsWargame) then return "PVP", "WAR_GAME" end
+        if C_PvP and CallBoolean(C_PvP.IsSoloShuffle) then return "PVP", "SOLO_SHUFFLE" end
+        if C_PvP and CallBoolean(C_PvP.IsArenaSkirmish) then return "PVP", "ARENA_SKIRMISH" end
+        if C_PvP and CallBoolean(C_PvP.IsRatedArena) then return "PVP", "RATED_ARENA" end
+    elseif instanceType == "scenario" then
+        return "SCENARIO", difficultyID == 208 and "DELVE" or "OTHER"
+    end
+    return nil
+end
+
+function NS:IsCurrentContentEnabled()
+    local group, item = self:GetCurrentContent()
+    return group ~= nil and self:GetContentSetting(group, item)
+end
+
 function NS:IsActive()
     return self.active == true
 end
@@ -509,6 +571,11 @@ function NS:InitializeDatabase()
             -- matches PI's usual group-coordination use case.
             PIAlertDB.settingsRevision = 13
         end
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 14 then
+            -- Dungeons and raids start enabled; all other content remains
+            -- opt-in, as supplied by MergeDefaults.
+            PIAlertDB.settingsRevision = 14
+        end
     end
     self.db = PIAlertDB
 end
@@ -573,7 +640,7 @@ function NS:RegisterSlashCommands()
             if not NS:IsActive() then NS:Print("Power Infusion must be talented to inspect spell trackers."); return end
             if NS.Detector then NS.Detector:PrintTrackerStatus() end
         elseif command == "test" then
-            if not NS:IsActive() then NS:Print("Power Infusion must be talented to test an alert."); return end
+            if not NS:IsActive() then NS:Print("PI Alert is inactive for your current talent, role, or content type."); return end
             if NS.RequestManager then NS.RequestManager:TestRequest() end
         elseif command == "mo" or command == "mouseover" then
             NS:SetPIMacroMode("MOUSEOVER")
@@ -625,14 +692,19 @@ function NS:RefreshEligibility(keepConfigOpen)
     end
 
     local hasPowerInfusion = self:HasPowerInfusion()
-    if hasPowerInfusion and self:IsCurrentSpecEnabled() then
+    if hasPowerInfusion and self:IsCurrentSpecEnabled() and self:IsCurrentContentEnabled() then
         self:Activate()
         return true
     end
 
-    local reason = hasPowerInfusion
-        and "PI Alert is disabled for this specialization"
-        or "Power Infusion not talented"
+    local reason
+    if not hasPowerInfusion then
+        reason = "Power Infusion not talented"
+    elseif not self:IsCurrentSpecEnabled() then
+        reason = "PI Alert is disabled for this specialization"
+    else
+        reason = "PI Alert is disabled for this content type"
+    end
     self:Deactivate(reason, keepConfigOpen)
     return false
 end
@@ -642,6 +714,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
 eventFrame:RegisterEvent("SPELLS_CHANGED")
 eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
@@ -675,13 +748,13 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
         if event == "PLAYER_REGEN_ENABLED" then return end
     end
 
-    if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD"
+    if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA"
         or event == "SPELLS_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" then
         local active = NS:RefreshEligibility()
 
         -- Spellbook/talent state can settle shortly after login or a loadout swap.
         -- A cheap delayed re-check makes activation reliable without polling.
-        if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD"
+        if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA"
             or event == "SPELLS_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" then
             C_Timer.After(0.35, function()
                 if NS.db then NS:RefreshEligibility() end
@@ -690,7 +763,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
         if not active then return end
 
-        if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
+        if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
             if NS.FrameAlerts then NS.FrameAlerts:ScheduleFrameScan(0.5) end
             if NS.RequestManager then NS.RequestManager:ReconcileRoster() end
             if NS.Detector then C_Timer.After(0.35, function() if NS:IsActive() then NS.Detector:RefreshAuraDetectors() end end) end

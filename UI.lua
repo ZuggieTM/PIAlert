@@ -188,6 +188,48 @@ local function CreateCheckbox(parent, labelText, getValue, setValue)
     return row
 end
 
+local function CreateTriStateCheckbox(parent, labelText, getState, setValue)
+    local row = CreateFrame("Button", nil, parent)
+    row:SetHeight(28)
+
+    local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
+    box:SetSize(19, 19)
+    box:SetPoint("LEFT", 0, 0)
+    SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
+    row.box = box
+
+    local check = box:CreateTexture(nil, "OVERLAY")
+    check:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+    check:SetSize(9, 9)
+    check:SetPoint("CENTER")
+
+    local dash = box:CreateTexture(nil, "OVERLAY")
+    dash:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+    dash:SetSize(9, 2)
+    dash:SetPoint("CENTER")
+
+    local label = CreateLabel(row, labelText or "", 13, C.text)
+    label:SetPoint("LEFT", box, "RIGHT", 9, 0)
+    row.label = label
+
+    function row:Refresh()
+        local state = getState() or "NONE"
+        check:SetShown(state == "ALL")
+        dash:SetShown(state == "PARTIAL")
+        box:SetBackdropBorderColor(unpack(state == "NONE" and C.border or C.accentDim))
+    end
+
+    row:SetScript("OnClick", function(self)
+        setValue(getState() ~= "ALL")
+        self:Refresh()
+    end)
+    row:SetScript("OnEnter", function() label:SetTextColor(unpack(C.accent)) end)
+    row:SetScript("OnLeave", function() label:SetTextColor(unpack(C.text)) end)
+    row:Refresh()
+
+    return row
+end
+
 local function CreateCard(parent, width, height)
     local card = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     card:SetSize(width, height)
@@ -374,7 +416,7 @@ function UI:CreateMainFrame()
 
     self.pages = {}
     self.navButtons = {}
-    local navItems = { "Requests", "Alerts", "Spells", "Macros" }
+    local navItems = { "Requests", "Activation", "Alerts", "Spells", "Macros" }
     for i, name in ipairs(navItems) do
         local btn = CreateFrame("Button", nil, sidebar)
         btn:SetPoint("TOPLEFT", 10, -18 - (i - 1) * 48)
@@ -408,6 +450,7 @@ function UI:CreateMainFrame()
     end
 
     self:BuildRequestsPage()
+    self:BuildActivationPage()
     self:BuildSpellsPage()
     self:BuildAlertsPage()
     self:BuildMacrosPage()
@@ -450,12 +493,14 @@ end
 function UI:Refresh()
     if not self.frame then return end
     self:RefreshRequestsPage()
+    self:RefreshActivationPage()
     self:RefreshSpellsPage()
     self:RefreshAlertsPage()
 end
 
 function UI:RefreshPage(name)
     if name == "Requests" then self:RefreshRequestsPage()
+    elseif name == "Activation" then self:RefreshActivationPage()
     elseif name == "Spells" then self:RefreshSpellsPage()
     elseif name == "Alerts" then self:RefreshAlertsPage()
     end
@@ -530,29 +575,7 @@ function UI:BuildRequestsPage()
     title:SetPoint("TOPLEFT", 16, -14)
     local sub = CreateLabel(sourceCard, "Accept whispers, tracked allied cooldown buffs, or both.", 10, C.muted)
     sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    sub:SetPoint("RIGHT", -272, 0)
-
-    local activationLabel = CreateLabel(sourceCard, "Active roles", 10, C.muted)
-    activationLabel:SetPoint("TOPLEFT", 346, -14)
-
-    local function setActivationRole(role, value)
-        NS.db.activation = NS.db.activation or {}
-        NS.db.activation[role] = value and true or false
-        NS:RefreshEligibility(true)
-        UI:RefreshRequestsPage()
-    end
-
-    self.activeHealerRole = CreateCheckbox(sourceCard, "Healer",
-        function() return NS.db.activation and NS.db.activation.HEALER == true end,
-        function(value) setActivationRole("HEALER", value) end)
-    self.activeHealerRole:SetPoint("TOPLEFT", 346, -36)
-    self.activeHealerRole:SetWidth(112)
-
-    self.activeDpsRole = CreateCheckbox(sourceCard, "DPS",
-        function() return NS.db.activation and NS.db.activation.DPS == true end,
-        function(value) setActivationRole("DPS", value) end)
-    self.activeDpsRole:SetPoint("TOPLEFT", 466, -36)
-    self.activeDpsRole:SetPoint("RIGHT", -14, 0)
+    sub:SetPoint("RIGHT", -14, 0)
 
     local howLabel = CreateLabel(sourceCard, "How to accept requests", 11, C.text)
     howLabel:SetPoint("TOPLEFT", 16, -66)
@@ -787,8 +810,6 @@ function UI:RefreshRequestsPage()
     if not self.requestModeDropdown or not self.requesterDropdown then return end
     self.requestModeDropdown:Refresh()
     self.requesterDropdown:Refresh()
-    if self.activeHealerRole then self.activeHealerRole:Refresh() end
-    if self.activeDpsRole then self.activeDpsRole:Refresh() end
 
     local mode = NS.db.requests.mode or "BOTH"
     local whispersEnabled = mode == "BOTH" or mode == "WHISPER"
@@ -883,6 +904,167 @@ function UI:RefreshPlayerRows()
         y = y + 46
     end
     self.playerListChild:SetHeight(math.max(1, y))
+end
+
+-- -----------------------------------------------------------------------------
+-- Activation page
+-- -----------------------------------------------------------------------------
+
+function UI:GetContentGroupState(group)
+    local enabled, total = 0, #group.items
+    for _, item in ipairs(group.items) do
+        if NS:GetContentSetting(group.key, item.key) then enabled = enabled + 1 end
+    end
+    if enabled == 0 then return "NONE" end
+    if enabled == total then return "ALL" end
+    return "PARTIAL"
+end
+
+function UI:SetContentGroupEnabled(group, enabled)
+    for _, item in ipairs(group.items) do
+        NS:SetContentSetting(group.key, item.key, enabled)
+    end
+    NS:RefreshEligibility(true)
+    self:RefreshActivationPage()
+end
+
+function UI:SetContentOption(group, item, enabled)
+    NS:SetContentSetting(group.key, item.key, enabled)
+    NS:RefreshEligibility(true)
+    self:RefreshActivationPage()
+end
+
+function UI:SelectContentGroup(key)
+    self.selectedContentGroup = key
+    self:RefreshActivationPage()
+end
+
+function UI:BuildActivationPage()
+    local page = CreateFrame("Frame", nil, self.content)
+    page:SetAllPoints()
+    self.pages.Activation = page
+    CreatePageHeading(page, "Activation", "Choose which priest roles and content types PI Alert handles requests in.")
+
+    local roleCard = CreateCard(page, 632, 104)
+    roleCard:SetPoint("TOPLEFT", 0, -72)
+    local roleTitle = CreateLabel(roleCard, "Priest roles", 15, C.text)
+    roleTitle:SetPoint("TOPLEFT", 16, -14)
+    local roleDesc = CreateLabel(roleCard, "Healer includes Holy and Discipline; DPS includes Shadow.", 10, C.muted)
+    roleDesc:SetPoint("TOPLEFT", roleTitle, "BOTTOMLEFT", 0, -4)
+    roleDesc:SetPoint("RIGHT", -16, 0)
+
+    local function setActivationRole(role, value)
+        NS.db.activation = NS.db.activation or {}
+        NS.db.activation[role] = value and true or false
+        NS:RefreshEligibility(true)
+        UI:RefreshActivationPage()
+    end
+
+    self.activeHealerRole = CreateCheckbox(roleCard, "Healer",
+        function() return NS.db.activation and NS.db.activation.HEALER == true end,
+        function(value) setActivationRole("HEALER", value) end)
+    self.activeHealerRole:SetPoint("TOPLEFT", 16, -62)
+    self.activeHealerRole:SetWidth(130)
+
+    self.activeDpsRole = CreateCheckbox(roleCard, "DPS",
+        function() return NS.db.activation and NS.db.activation.DPS == true end,
+        function(value) setActivationRole("DPS", value) end)
+    self.activeDpsRole:SetPoint("TOPLEFT", 164, -62)
+    self.activeDpsRole:SetWidth(130)
+
+    local contentCard = CreateCard(page, 632, 382)
+    contentCard:SetPoint("TOPLEFT", roleCard, "BOTTOMLEFT", 0, -14)
+    local title = CreateLabel(contentCard, "Content types", 15, C.text)
+    title:SetPoint("TOPLEFT", 16, -14)
+    local desc = CreateLabel(contentCard, "Enable a category quickly, then fine-tune individual difficulties or modes.", 10, C.muted)
+    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    desc:SetPoint("RIGHT", -16, 0)
+
+    local divider = contentCard:CreateTexture(nil, "ARTWORK")
+    divider:SetColorTexture(unpack(C.borderSoft))
+    divider:SetPoint("TOPLEFT", 207, -58)
+    divider:SetPoint("BOTTOMLEFT", 207, 14)
+    divider:SetWidth(1)
+
+    self.contentCategoryControls = {}
+    self.contentDetailControls = {}
+    self.selectedContentGroup = self.selectedContentGroup or "DUNGEON"
+
+    for index, group in ipairs(NS.CONTENT_GROUPS or {}) do
+        local currentGroup = group
+        local category = CreateTriStateCheckbox(contentCard, group.label,
+            function() return UI:GetContentGroupState(currentGroup) end,
+            function(enabled) UI:SetContentGroupEnabled(currentGroup, enabled) end)
+        category:SetPoint("TOPLEFT", 16, -62 - (index - 1) * 56)
+        category:SetWidth(166)
+        self.contentCategoryControls[group.key] = category
+
+        local select = CreateButton(contentCard, "Edit", 38, 26, false)
+        select:SetPoint("LEFT", category, "RIGHT", 4, 0)
+        select:SetScript("OnClick", function() UI:SelectContentGroup(currentGroup.key) end)
+        category.select = select
+
+        local detail = CreateFrame("Frame", nil, contentCard, "BackdropTemplate")
+        detail:SetPoint("TOPLEFT", 222, -62)
+        detail:SetPoint("BOTTOMRIGHT", -14, 14)
+        SetBackdrop(detail, C.panel2, C.border)
+        detail:Hide()
+
+        local detailTitle = CreateLabel(detail, group.label, 14, C.text)
+        detailTitle:SetPoint("TOPLEFT", 14, -12)
+        local detailDesc = CreateLabel(detail, group.description, 10, C.muted)
+        detailDesc:SetPoint("TOPLEFT", detailTitle, "BOTTOMLEFT", 0, -3)
+        detailDesc:SetPoint("RIGHT", -14, 0)
+        detailDesc:SetWordWrap(true)
+
+        local master = CreateTriStateCheckbox(detail, "Enable all " .. group.label,
+            function() return UI:GetContentGroupState(currentGroup) end,
+            function(enabled) UI:SetContentGroupEnabled(currentGroup, enabled) end)
+        master:SetPoint("TOPLEFT", 14, -64)
+        master:SetWidth(240)
+
+        local controls = { frame = detail, master = master, items = {} }
+        if group.key ~= "OPEN_WORLD" then
+            for itemIndex, item in ipairs(group.items) do
+                local currentItem = item
+                local child = CreateCheckbox(detail, item.label,
+                    function() return NS:GetContentSetting(currentGroup.key, currentItem.key) end,
+                    function(enabled) UI:SetContentOption(currentGroup.key, currentItem.key, enabled) end)
+                local column = (itemIndex - 1) % 2
+                local row = math.floor((itemIndex - 1) / 2)
+                child:SetPoint("TOPLEFT", 14 + column * 180, -104 - row * 38)
+                child:SetWidth(166)
+                controls.items[#controls.items + 1] = child
+            end
+        end
+        self.contentDetailControls[group.key] = controls
+    end
+end
+
+function UI:RefreshActivationPage()
+    if not self.contentCategoryControls then return end
+    if self.activeHealerRole then self.activeHealerRole:Refresh() end
+    if self.activeDpsRole then self.activeDpsRole:Refresh() end
+
+    for _, group in ipairs(NS.CONTENT_GROUPS or {}) do
+        local category = self.contentCategoryControls[group.key]
+        if category then
+            category:Refresh()
+            local selected = self.selectedContentGroup == group.key
+            category.label:SetTextColor(unpack(selected and C.accent or C.text))
+            category.select:SetBackdropBorderColor(unpack(selected and C.accentDim or C.border))
+        end
+
+        local detail = self.contentDetailControls[group.key]
+        if detail then
+            local shown = self.selectedContentGroup == group.key
+            detail.frame:SetShown(shown)
+            if shown then
+                detail.master:Refresh()
+                for _, child in ipairs(detail.items) do child:Refresh() end
+            end
+        end
+    end
 end
 
 -- -----------------------------------------------------------------------------
