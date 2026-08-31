@@ -17,11 +17,11 @@ Final 2048×1152 JPEGs are written to `Branding/CurseForge/gallery`.
 ## Source screenshots
 
 - `WoWScrnShot_082726_212445.jpg` — live combat PI alert
-- `WoWScrnShot_083126_111855.jpg` — Requests
-- `WoWScrnShot_083126_111857.jpg` — Activation
-- `WoWScrnShot_083126_111859.jpg` — Alerts
-- `WoWScrnShot_083126_111901.jpg` — Spells
-- `WoWScrnShot_083126_111903.jpg` — Macros
+- `WoWScrnShot_083126_124002.jpg` — Requests
+- `WoWScrnShot_083126_124004.jpg` — Activation
+- `WoWScrnShot_083126_124007.jpg` — Alerts
+- `WoWScrnShot_083126_124010.jpg` — Spells
+- `WoWScrnShot_083126_124012.jpg` — Macros
 - `WoWScrnShot_082726_214545.jpg` — right-click controls
 
 The 5120×1440 source screenshots remain in the World of Warcraft screenshot folder and are not committed to keep the repository lightweight.

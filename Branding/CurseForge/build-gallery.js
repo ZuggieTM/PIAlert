@@ -37,7 +37,7 @@ const slides = [
   },
   {
     output: "02-requests.jpg",
-    source: "WoWScrnShot_083126_111855.jpg",
+    source: "WoWScrnShot_083126_124002.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "REQUEST CONTROL",
@@ -50,7 +50,7 @@ const slides = [
   },
   {
     output: "03-activation.jpg",
-    source: "WoWScrnShot_083126_111857.jpg",
+    source: "WoWScrnShot_083126_124004.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "SMART ACTIVATION",
@@ -63,7 +63,7 @@ const slides = [
   },
   {
     output: "04-alerts.jpg",
-    source: "WoWScrnShot_083126_111859.jpg",
+    source: "WoWScrnShot_083126_124007.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "CUSTOM ALERTS",
@@ -76,7 +76,7 @@ const slides = [
   },
   {
     output: "05-spells.jpg",
-    source: "WoWScrnShot_083126_111901.jpg",
+    source: "WoWScrnShot_083126_124010.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "COOLDOWN TRACKING",
@@ -89,7 +89,7 @@ const slides = [
   },
   {
     output: "06-macros.jpg",
-    source: "WoWScrnShot_083126_111903.jpg",
+    source: "WoWScrnShot_083126_124012.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "BUILT-IN MACROS",
