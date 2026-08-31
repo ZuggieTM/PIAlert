@@ -18,6 +18,17 @@ local C = {
 }
 
 local SOUND_PREVIEW_ICON = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\sound-preview.tga"
+local ADDON_LOGO = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\pialert-icon.tga"
+
+local function GetAddonVersion()
+    local version
+    if C_AddOns and type(C_AddOns.GetAddOnMetadata) == "function" then
+        version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")
+    elseif type(GetAddOnMetadata) == "function" then
+        version = GetAddOnMetadata(ADDON_NAME, "Version")
+    end
+    return version and version ~= "" and ("v" .. version) or ""
+end
 
 local function SetBackdrop(frame, bg, border)
     frame:SetBackdrop({
@@ -389,8 +400,14 @@ function UI:CreateMainFrame()
     accent:SetHeight(2)
     accent:SetColorTexture(unpack(C.accentDim))
 
+    local logo = top:CreateTexture(nil, "ARTWORK")
+    logo:SetSize(40, 40)
+    logo:SetPoint("LEFT", 18, 0)
+    logo:SetTexture(ADDON_LOGO)
+    logo:SetTexCoord(0, 1, 0, 1)
+
     local title = CreateLabel(top, "PI Alert", 20, C.text)
-    title:SetPoint("LEFT", 22, 7)
+    title:SetPoint("LEFT", logo, "RIGHT", 10, 7)
     local subtitle = CreateLabel(top, "Power Infusion request assistant", 10, C.muted)
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
 
@@ -408,6 +425,11 @@ function UI:CreateMainFrame()
     sidebar:SetWidth(170)
     SetBackdrop(sidebar, {0.032, 0.047, 0.064, 1}, {0.032, 0.047, 0.064, 1})
     self.sidebar = sidebar
+
+    local version = CreateLabel(sidebar, GetAddonVersion(), 10, C.muted)
+    version:SetPoint("BOTTOMLEFT", 14, 14)
+    version:SetAlpha(0.72)
+    self.versionLabel = version
 
     local content = CreateFrame("Frame", nil, frame)
     content:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 24, -20)
