@@ -138,7 +138,7 @@ function SecureGlow:StartPixel(frame, width, height, color, cfg)
     return true
 end
 
-local function StartFlipbook(frame, width, height, color, speed, kind)
+local function StartFlipbook(frame, width, height, color, speed, kind, cfg)
     if not frame then return false end
 
     local d = frame._pipSecureFlipbook
@@ -169,8 +169,9 @@ local function StartFlipbook(frame, width, height, color, speed, kind)
         animation:SetFlipBookFrameHeight(48)
         animation:SetDuration(0.30 / speed)
     else
+        local scale = Clamp(cfg and cfg.glowAutoCastScale, 0.5, 3.0, 1.0)
         d.texture:SetAtlas("UI-HUD-ActionBar-Proc-Loop-Flipbook")
-        d.texture:SetSize(width * 1.40, height * 1.40)
+        d.texture:SetSize(width * 1.40 * scale, height * 1.40 * scale)
         animation:SetFlipBookRows(6)
         animation:SetFlipBookColumns(5)
         animation:SetFlipBookFrames(30)
@@ -200,12 +201,12 @@ function SecureGlow:Start(frame, width, height, color, cfg)
 
     local style = cfg.glowStyle or "PIXEL"
     if style == "BUTTON" then
-        return StartFlipbook(frame, width, height, color, speed, "BUTTON")
+        return StartFlipbook(frame, width, height, color, speed, "BUTTON", cfg)
     elseif style == "AUTOCAST" then
         -- LibCustomGlow's Lua-driven AutoCast animation cannot run inside a
         -- restricted aura-button subtree. Use a C-side proc flipbook here so
         -- the secure spell path remains animated and color-configurable.
-        return StartFlipbook(frame, width, height, color, speed, "AUTOCAST")
+        return StartFlipbook(frame, width, height, color, speed, "AUTOCAST", cfg)
     end
 
     return self:StartPixel(frame, width, height, color, cfg)

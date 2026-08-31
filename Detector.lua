@@ -154,22 +154,25 @@ local function CreateSecureGlowArt(frame, target, visual)
     local style = visual.glowStyle or "PIXEL"
     local color = visual.glowColor or { 1.00, 0.82, 0.20, 1.00 }
     local thickness = visual.glowPixelThickness or 2
+    local width, height = GetSecureTargetSize(target)
+
+    -- The secure tracker must use the native animation path for every style.
+    -- Falling through to a static border made AutoCast and Button Glow appear
+    -- to work in the normal Test alert but not on real tracked cooldown auras.
+    if NS.SecureGlow and NS.SecureGlow.Start then
+        local ok, started = pcall(
+            NS.SecureGlow.Start,
+            NS.SecureGlow,
+            frame,
+            width,
+            height,
+            color,
+            visual
+        )
+        if ok and started then return end
+    end
 
     if style == "PIXEL" then
-        local width, height = GetSecureTargetSize(target)
-        if NS.SecureGlow and NS.SecureGlow.StartPixel then
-            local ok, started = pcall(
-                NS.SecureGlow.StartPixel,
-                NS.SecureGlow,
-                frame,
-                width,
-                height,
-                color,
-                visual
-            )
-            if ok and started then return end
-        end
-
         -- If a client rejects the native Translation animation, retain a visible
         -- static Pixel border and the proven native alpha pulse as a fallback.
         CreateStaticPixelGlow(frame, target, color, thickness, visual.glowPixelLines)
