@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 12
+NS.SETTINGS_REVISION = 13
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -129,6 +129,13 @@ NS.DEFAULTS = {
             { text = "PI", match = "CONTAINS" },
             { text = "Power Infusion", match = "CONTAINS" },
         },
+    },
+
+    -- Holy and Discipline commonly coordinate PI requests for the group,
+    -- while Shadow usually spends PI on their own cooldown window.
+    activation = {
+        HEALER = true, -- Holy and Discipline
+        DPS = false,   -- Shadow
     },
 
     requesters = {

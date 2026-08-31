@@ -276,6 +276,30 @@ function NS:HasPowerInfusion()
     return ok and slot ~= nil
 end
 
+function NS:GetCurrentActivationRole()
+    if not self:IsPriest() or type(GetSpecialization) ~= "function" then return nil end
+
+    local specIndex = GetSpecialization()
+    if not specIndex then return nil end
+
+    local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo)
+        or GetSpecializationInfo
+    if type(getInfo) ~= "function" then return nil end
+
+    local specID = getInfo(specIndex)
+    if specID == 256 or specID == 257 then return "HEALER" end -- Discipline, Holy
+    if specID == 258 then return "DPS" end -- Shadow
+    return nil
+end
+
+function NS:IsCurrentSpecEnabled()
+    local role = self:GetCurrentActivationRole()
+    return role ~= nil
+        and self.db
+        and self.db.activation
+        and self.db.activation[role] == true
+end
+
 function NS:IsActive()
     return self.active == true
 end
@@ -479,6 +503,12 @@ function NS:InitializeDatabase()
             end
             PIAlertDB.settingsRevision = 12
         end
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 13 then
+            -- The role defaults are supplied by MergeDefaults. Existing users
+            -- therefore start with Healer enabled and Shadow disabled, which
+            -- matches PI's usual group-coordination use case.
+            PIAlertDB.settingsRevision = 13
+        end
     end
     self.db = PIAlertDB
 end
@@ -561,13 +591,13 @@ function NS:RegisterSlashCommands()
     end
 end
 
-function NS:Deactivate()
+function NS:Deactivate(reason, keepConfigOpen)
     if not self.active then return end
     self.active = false
 
-    if self.UI and self.UI.frame then self.UI.frame:Hide() end
+    if not keepConfigOpen and self.UI and self.UI.frame then self.UI.frame:Hide() end
     if self.RequestManager and self.RequestManager.ClearAll then
-        self.RequestManager:ClearAll("Power Infusion not talented")
+        self.RequestManager:ClearAll(reason or "PI Alert inactive")
     end
     if self.Detector and self.Detector.ClearAuraStates then
         self.Detector:ClearAuraStates()
@@ -588,18 +618,22 @@ function NS:Activate()
     if self.Detector then self.Detector:ScheduleAuraRefresh(0.10) end
 end
 
-function NS:RefreshEligibility()
+function NS:RefreshEligibility(keepConfigOpen)
     if not self:IsPriest() then
-        self:Deactivate()
+        self:Deactivate("Not a Priest", keepConfigOpen)
         return false
     end
 
-    if self:HasPowerInfusion() then
+    local hasPowerInfusion = self:HasPowerInfusion()
+    if hasPowerInfusion and self:IsCurrentSpecEnabled() then
         self:Activate()
         return true
     end
 
-    self:Deactivate()
+    local reason = hasPowerInfusion
+        and "PI Alert is disabled for this specialization"
+        or "Power Infusion not talented"
+    self:Deactivate(reason, keepConfigOpen)
     return false
 end
 

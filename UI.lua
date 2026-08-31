@@ -530,6 +530,29 @@ function UI:BuildRequestsPage()
     title:SetPoint("TOPLEFT", 16, -14)
     local sub = CreateLabel(sourceCard, "Accept whispers, tracked allied cooldown buffs, or both.", 10, C.muted)
     sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    sub:SetPoint("RIGHT", -272, 0)
+
+    local activationLabel = CreateLabel(sourceCard, "Active roles", 10, C.muted)
+    activationLabel:SetPoint("TOPLEFT", 364, -14)
+
+    local function setActivationRole(role, value)
+        NS.db.activation = NS.db.activation or {}
+        NS.db.activation[role] = value and true or false
+        NS:RefreshEligibility(true)
+        UI:RefreshRequestsPage()
+    end
+
+    self.activeHealerRole = CreateCheckbox(sourceCard, "Healer (Holy/Disc)",
+        function() return NS.db.activation and NS.db.activation.HEALER == true end,
+        function(value) setActivationRole("HEALER", value) end)
+    self.activeHealerRole:SetPoint("TOPLEFT", 364, -36)
+    self.activeHealerRole:SetWidth(148)
+
+    self.activeDpsRole = CreateCheckbox(sourceCard, "DPS (Shadow)",
+        function() return NS.db.activation and NS.db.activation.DPS == true end,
+        function(value) setActivationRole("DPS", value) end)
+    self.activeDpsRole:SetPoint("TOPLEFT", 516, -36)
+    self.activeDpsRole:SetPoint("RIGHT", -14, 0)
 
     local howLabel = CreateLabel(sourceCard, "How to accept requests", 11, C.text)
     howLabel:SetPoint("TOPLEFT", 16, -66)
@@ -764,6 +787,8 @@ function UI:RefreshRequestsPage()
     if not self.requestModeDropdown or not self.requesterDropdown then return end
     self.requestModeDropdown:Refresh()
     self.requesterDropdown:Refresh()
+    if self.activeHealerRole then self.activeHealerRole:Refresh() end
+    if self.activeDpsRole then self.activeDpsRole:Refresh() end
 
     local mode = NS.db.requests.mode or "BOTH"
     local whispersEnabled = mode == "BOTH" or mode == "WHISPER"
