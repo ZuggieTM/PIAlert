@@ -405,6 +405,9 @@ function UI:CreateMainFrame()
     logo:SetPoint("LEFT", 18, 0)
     logo:SetTexture(ADDON_LOGO)
     logo:SetTexCoord(0, 1, 0, 1)
+    -- The source mark has a black background. Additive blending lets that
+    -- background disappear into the header while preserving the purple glow.
+    logo:SetBlendMode("ADD")
 
     local title = CreateLabel(top, "PI Alert", 20, C.text)
     title:SetPoint("LEFT", logo, "RIGHT", 10, 7)
