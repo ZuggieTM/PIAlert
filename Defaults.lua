@@ -279,6 +279,7 @@ NS.DEFAULTS = {
         y = 0,
         page = "Requests",
         spellCollapsed = {},
+        contentCollapsed = {},
     },
 
     debug = false,

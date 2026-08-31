@@ -910,6 +910,16 @@ end
 -- Activation page
 -- -----------------------------------------------------------------------------
 
+local function ApplyContentRowBackground(row, hovered)
+    local entry = row.entry
+    if not entry then return end
+    if entry.type == "header" then
+        row.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], hovered and 0.11 or 0.055)
+    else
+        row.bg:SetColorTexture(1, 1, 1, hovered and 0.045 or 0)
+    end
+end
+
 function UI:GetContentGroupState(group)
     local enabled, total = 0, #group.items
     for _, item in ipairs(group.items) do
@@ -934,9 +944,32 @@ function UI:SetContentOption(group, item, enabled)
     self:RefreshActivationPage()
 end
 
-function UI:SelectContentGroup(key)
-    self.selectedContentGroup = key
-    self:RefreshActivationPage()
+function UI:IsContentCollapsed(groupKey)
+    NS.db.ui.contentCollapsed = NS.db.ui.contentCollapsed or {}
+    return NS.db.ui.contentCollapsed[groupKey] == true
+end
+
+function UI:ToggleContentCollapsed(groupKey)
+    NS.db.ui.contentCollapsed = NS.db.ui.contentCollapsed or {}
+    NS.db.ui.contentCollapsed[groupKey] = not NS.db.ui.contentCollapsed[groupKey]
+    self:RefreshContentList()
+end
+
+function UI:BuildContentEntries()
+    local entries = {}
+    for _, group in ipairs(NS.CONTENT_GROUPS or {}) do
+        entries[#entries + 1] = {
+            type = "header",
+            group = group,
+            collapsed = group.key ~= "OPEN_WORLD" and self:IsContentCollapsed(group.key),
+        }
+        if group.key ~= "OPEN_WORLD" and not self:IsContentCollapsed(group.key) then
+            for _, item in ipairs(group.items) do
+                entries[#entries + 1] = { type = "item", group = group, item = item }
+            end
+        end
+    end
+    self.contentEntries = entries
 end
 
 function UI:BuildActivationPage()
@@ -972,99 +1005,209 @@ function UI:BuildActivationPage()
     self.activeDpsRole:SetPoint("TOPLEFT", 164, -62)
     self.activeDpsRole:SetWidth(130)
 
-    local contentCard = CreateCard(page, 632, 382)
-    contentCard:SetPoint("TOPLEFT", roleCard, "BOTTOMLEFT", 0, -14)
-    local title = CreateLabel(contentCard, "Content types", 15, C.text)
-    title:SetPoint("TOPLEFT", 16, -14)
-    local desc = CreateLabel(contentCard, "Enable a category quickly, then fine-tune individual difficulties or modes.", 10, C.muted)
-    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    desc:SetPoint("RIGHT", -16, 0)
+    local list = CreateCard(page, 632, 382)
+    list:SetPoint("TOPLEFT", roleCard, "BOTTOMLEFT", 0, -14)
+    self.contentList = list
+    self.contentRows = {}
+    self.contentVisibleRows = 10
+    self.contentOffset = 1
 
-    local divider = contentCard:CreateTexture(nil, "ARTWORK")
-    divider:SetColorTexture(unpack(C.borderSoft))
-    divider:SetPoint("TOPLEFT", 207, -58)
-    divider:SetPoint("BOTTOMLEFT", 207, 14)
-    divider:SetWidth(1)
+    for i = 1, self.contentVisibleRows do
+        local row = CreateFrame("Button", nil, list)
+        row:SetPoint("TOPLEFT", 8, -8 - (i - 1) * 36)
+        row:SetPoint("TOPRIGHT", -28, -8 - (i - 1) * 36)
+        row:SetHeight(34)
 
-    self.contentCategoryControls = {}
-    self.contentDetailControls = {}
-    self.selectedContentGroup = self.selectedContentGroup or "DUNGEON"
+        local bg = row:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(1, 1, 1, 0)
+        row.bg = bg
 
-    for index, group in ipairs(NS.CONTENT_GROUPS or {}) do
-        local currentGroup = group
-        local category = CreateTriStateCheckbox(contentCard, group.label,
-            function() return UI:GetContentGroupState(currentGroup) end,
-            function(enabled) UI:SetContentGroupEnabled(currentGroup, enabled) end)
-        category:SetPoint("TOPLEFT", 16, -62 - (index - 1) * 56)
-        category:SetWidth(166)
-        self.contentCategoryControls[group.key] = category
+        local headerAccent = row:CreateTexture(nil, "BORDER")
+        headerAccent:SetPoint("TOPLEFT", 0, 0)
+        headerAccent:SetPoint("BOTTOMLEFT", 0, 0)
+        headerAccent:SetWidth(3)
+        row.headerAccent = headerAccent
 
-        local select = CreateButton(contentCard, "Edit", 38, 26, false)
-        select:SetPoint("LEFT", category, "RIGHT", 4, 0)
-        select:SetScript("OnClick", function() UI:SelectContentGroup(currentGroup.key) end)
-        category.select = select
+        local collapse = CreateLabel(row, "-", 18, C.accent)
+        collapse:SetPoint("RIGHT", -10, 1)
+        collapse:SetWidth(22)
+        collapse:SetJustifyH("CENTER")
+        row.collapse = collapse
 
-        local detail = CreateFrame("Frame", nil, contentCard, "BackdropTemplate")
-        detail:SetPoint("TOPLEFT", 222, -62)
-        detail:SetPoint("BOTTOMRIGHT", -14, 14)
-        SetBackdrop(detail, C.panel2, C.border)
-        detail:Hide()
+        local headerBox = CreateFrame("Button", nil, row, "BackdropTemplate")
+        headerBox:SetSize(18, 18)
+        headerBox:SetPoint("LEFT", 10, 0)
+        SetBackdrop(headerBox, {0.025, 0.037, 0.050, 1}, C.border)
+        row.headerBox = headerBox
+        local headerCheck = headerBox:CreateTexture(nil, "OVERLAY")
+        headerCheck:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+        headerCheck:SetSize(9, 9)
+        headerCheck:SetPoint("CENTER")
+        row.headerCheck = headerCheck
+        local headerMinus = headerBox:CreateTexture(nil, "OVERLAY")
+        headerMinus:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+        headerMinus:SetSize(10, 3)
+        headerMinus:SetPoint("CENTER")
+        row.headerMinus = headerMinus
 
-        local detailTitle = CreateLabel(detail, group.label, 14, C.text)
-        detailTitle:SetPoint("TOPLEFT", 14, -12)
-        local detailDesc = CreateLabel(detail, group.description, 10, C.muted)
-        detailDesc:SetPoint("TOPLEFT", detailTitle, "BOTTOMLEFT", 0, -3)
-        detailDesc:SetPoint("RIGHT", -14, 0)
-        detailDesc:SetWordWrap(true)
+        local headerText = CreateLabel(row, "", 13, C.accent)
+        headerText:SetPoint("LEFT", headerBox, "RIGHT", 9, 0)
+        headerText:SetPoint("RIGHT", collapse, "LEFT", -8, 0)
+        row.headerText = headerText
 
-        local master = CreateTriStateCheckbox(detail, "Enable all " .. group.label,
-            function() return UI:GetContentGroupState(currentGroup) end,
-            function(enabled) UI:SetContentGroupEnabled(currentGroup, enabled) end)
-        master:SetPoint("TOPLEFT", 14, -64)
-        master:SetWidth(240)
+        local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
+        box:SetSize(18, 18)
+        box:SetPoint("LEFT", 6, 0)
+        SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
+        row.box = box
+        local check = box:CreateTexture(nil, "OVERLAY")
+        check:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+        check:SetSize(9, 9)
+        check:SetPoint("CENTER")
+        row.check = check
 
-        local controls = { frame = detail, master = master, items = {} }
-        if group.key ~= "OPEN_WORLD" then
-            for itemIndex, item in ipairs(group.items) do
-                local currentItem = item
-                local child = CreateCheckbox(detail, item.label,
-                    function() return NS:GetContentSetting(currentGroup.key, currentItem.key) end,
-                    function(enabled) UI:SetContentOption(currentGroup.key, currentItem.key, enabled) end)
-                local column = (itemIndex - 1) % 2
-                local row = math.floor((itemIndex - 1) / 2)
-                child:SetPoint("TOPLEFT", 14 + column * 180, -104 - row * 38)
-                child:SetWidth(166)
-                controls.items[#controls.items + 1] = child
+        local itemText = CreateLabel(row, "", 12, C.text)
+        itemText:SetPoint("LEFT", box, "RIGHT", 9, 0)
+        itemText:SetPoint("RIGHT", -10, 0)
+        row.itemText = itemText
+
+        headerBox:SetScript("OnClick", function()
+            local entry = row.entry
+            if entry and entry.type == "header" then
+                UI:SetContentGroupEnabled(entry.group, UI:GetContentGroupState(entry.group) ~= "ALL")
             end
+        end)
+        row:SetScript("OnEnter", function(self)
+            ApplyContentRowBackground(self, true)
+            local entry = self.entry
+            if entry and entry.type == "header" then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(entry.group.label, 1, 1, 1)
+                GameTooltip:AddLine(entry.group.description, C.muted[1], C.muted[2], C.muted[3], true)
+                GameTooltip:Show()
+            end
+        end)
+        row:SetScript("OnLeave", function(self)
+            ApplyContentRowBackground(self, false)
+            if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+        end)
+        row:SetScript("OnClick", function(self)
+            local entry = self.entry
+            if not entry then return end
+            if entry.type == "header" then
+                if entry.group.key ~= "OPEN_WORLD" then UI:ToggleContentCollapsed(entry.group.key) end
+            else
+                UI:SetContentOption(entry.group.key, entry.item.key,
+                    not NS:GetContentSetting(entry.group.key, entry.item.key))
+            end
+        end)
+        self.contentRows[i] = row
+    end
+
+    local scrollbar = CreateFrame("Slider", nil, list, "BackdropTemplate")
+    scrollbar:SetOrientation("VERTICAL")
+    scrollbar:SetPoint("TOPRIGHT", -8, -10)
+    scrollbar:SetPoint("BOTTOMRIGHT", -8, 10)
+    scrollbar:SetWidth(10)
+    SetBackdrop(scrollbar, {0.020, 0.030, 0.042, 1}, C.borderSoft)
+    scrollbar:SetMinMaxValues(1, 1)
+    scrollbar:SetValueStep(1)
+    scrollbar:SetThumbTexture("Interface\\Buttons\\WHITE8X8")
+    local thumb = scrollbar:GetThumbTexture()
+    if thumb then
+        thumb:SetSize(8, 50)
+        thumb:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.72)
+    end
+    scrollbar:SetScript("OnValueChanged", function(_, value)
+        if UI._syncingContentScrollbar then return end
+        local maxOffset = math.max(1, #(UI.contentEntries or {}) - UI.contentVisibleRows + 1)
+        local offset = math.max(1, math.min(maxOffset, math.floor((tonumber(value) or 1) + 0.5)))
+        if offset ~= UI.contentOffset then
+            UI.contentOffset = offset
+            UI:RenderContentRows()
         end
-        self.contentDetailControls[group.key] = controls
+    end)
+    self.contentScrollbar = scrollbar
+
+    list:EnableMouseWheel(true)
+    list:SetScript("OnMouseWheel", function(_, delta)
+        local maxOffset = math.max(1, #(UI.contentEntries or {}) - UI.contentVisibleRows + 1)
+        UI.contentOffset = math.max(1, math.min(maxOffset, (UI.contentOffset or 1) - delta * 3))
+        UI:RenderContentRows()
+        UI:SyncContentScrollbar()
+    end)
+end
+
+function UI:RenderContentRows()
+    local entries = self.contentEntries or {}
+    local offset = self.contentOffset or 1
+    for i, row in ipairs(self.contentRows or {}) do
+        local entry = entries[offset + i - 1]
+        row.entry = entry
+        if not entry then
+            row:Hide()
+        elseif entry.type == "header" then
+            row:Show()
+            row.headerAccent:Show()
+            row.headerAccent:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.85)
+            row.headerBox:Show()
+            row.headerText:Show()
+            row.itemText:Hide()
+            row.box:Hide()
+            row.collapse:SetShown(entry.group.key ~= "OPEN_WORLD")
+            row.collapse:SetText(entry.collapsed and "+" or "-")
+            row.headerText:SetText(entry.group.label)
+            local state = self:GetContentGroupState(entry.group)
+            row.headerCheck:SetShown(state == "ALL")
+            row.headerMinus:SetShown(state == "PARTIAL")
+            row.headerBox:SetBackdropBorderColor(unpack(state == "NONE" and C.border or C.accentDim))
+            ApplyContentRowBackground(row, false)
+        else
+            row:Show()
+            row.headerAccent:Hide()
+            row.headerBox:Hide()
+            row.headerText:Hide()
+            row.collapse:Hide()
+            row.box:Show()
+            row.itemText:Show()
+            row.itemText:SetText(entry.item.label)
+            local enabled = NS:GetContentSetting(entry.group.key, entry.item.key)
+            row.check:SetShown(enabled)
+            row.box:SetBackdropBorderColor(unpack(enabled and C.accentDim or C.border))
+            ApplyContentRowBackground(row, false)
+        end
     end
 end
 
+function UI:SyncContentScrollbar()
+    local scrollbar = self.contentScrollbar
+    if not scrollbar then return end
+    local total = #(self.contentEntries or {})
+    local maxOffset = math.max(1, total - (self.contentVisibleRows or 1) + 1)
+    self.contentOffset = math.max(1, math.min(maxOffset, self.contentOffset or 1))
+    self._syncingContentScrollbar = true
+    scrollbar:SetMinMaxValues(1, maxOffset)
+    scrollbar:SetValue(self.contentOffset)
+    self._syncingContentScrollbar = false
+    scrollbar:SetAlpha(maxOffset <= 1 and 0.28 or 1)
+    scrollbar:EnableMouse(maxOffset > 1)
+end
+
+function UI:RefreshContentList()
+    if not self.contentRows then return end
+    self:BuildContentEntries()
+    local maxOffset = math.max(1, #self.contentEntries - self.contentVisibleRows + 1)
+    self.contentOffset = math.max(1, math.min(maxOffset, self.contentOffset or 1))
+    self:RenderContentRows()
+    self:SyncContentScrollbar()
+end
+
 function UI:RefreshActivationPage()
-    if not self.contentCategoryControls then return end
+    if not self.contentRows then return end
     if self.activeHealerRole then self.activeHealerRole:Refresh() end
     if self.activeDpsRole then self.activeDpsRole:Refresh() end
-
-    for _, group in ipairs(NS.CONTENT_GROUPS or {}) do
-        local category = self.contentCategoryControls[group.key]
-        if category then
-            category:Refresh()
-            local selected = self.selectedContentGroup == group.key
-            category.label:SetTextColor(unpack(selected and C.accent or C.text))
-            category.select:SetBackdropBorderColor(unpack(selected and C.accentDim or C.border))
-        end
-
-        local detail = self.contentDetailControls[group.key]
-        if detail then
-            local shown = self.selectedContentGroup == group.key
-            detail.frame:SetShown(shown)
-            if shown then
-                detail.master:Refresh()
-                for _, child in ipairs(detail.items) do child:Refresh() end
-            end
-        end
-    end
+    self:RefreshContentList()
 end
 
 -- -----------------------------------------------------------------------------
