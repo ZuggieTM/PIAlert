@@ -18,6 +18,17 @@ local C = {
 }
 
 local SOUND_PREVIEW_ICON = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\sound-preview.tga"
+local ADDON_LOGO = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\pialert-icon-feathered.tga"
+
+local function GetAddonVersion()
+    local version
+    if C_AddOns and type(C_AddOns.GetAddOnMetadata) == "function" then
+        version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")
+    elseif type(GetAddOnMetadata) == "function" then
+        version = GetAddOnMetadata(ADDON_NAME, "Version")
+    end
+    return version and version ~= "" and ("v" .. version) or ""
+end
 
 local function SetBackdrop(frame, bg, border)
     frame:SetBackdrop({
@@ -188,6 +199,48 @@ local function CreateCheckbox(parent, labelText, getValue, setValue)
     return row
 end
 
+local function CreateTriStateCheckbox(parent, labelText, getState, setValue)
+    local row = CreateFrame("Button", nil, parent)
+    row:SetHeight(28)
+
+    local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
+    box:SetSize(19, 19)
+    box:SetPoint("LEFT", 0, 0)
+    SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
+    row.box = box
+
+    local check = box:CreateTexture(nil, "OVERLAY")
+    check:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+    check:SetSize(9, 9)
+    check:SetPoint("CENTER")
+
+    local dash = box:CreateTexture(nil, "OVERLAY")
+    dash:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+    dash:SetSize(9, 2)
+    dash:SetPoint("CENTER")
+
+    local label = CreateLabel(row, labelText or "", 13, C.text)
+    label:SetPoint("LEFT", box, "RIGHT", 9, 0)
+    row.label = label
+
+    function row:Refresh()
+        local state = getState() or "NONE"
+        check:SetShown(state == "ALL")
+        dash:SetShown(state == "PARTIAL")
+        box:SetBackdropBorderColor(unpack(state == "NONE" and C.border or C.accentDim))
+    end
+
+    row:SetScript("OnClick", function(self)
+        setValue(getState() ~= "ALL")
+        self:Refresh()
+    end)
+    row:SetScript("OnEnter", function() label:SetTextColor(unpack(C.accent)) end)
+    row:SetScript("OnLeave", function() label:SetTextColor(unpack(C.text)) end)
+    row:Refresh()
+
+    return row
+end
+
 local function CreateCard(parent, width, height)
     local card = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     card:SetSize(width, height)
@@ -347,8 +400,17 @@ function UI:CreateMainFrame()
     accent:SetHeight(2)
     accent:SetColorTexture(unpack(C.accentDim))
 
+    local logo = top:CreateTexture(nil, "ARTWORK")
+    logo:SetSize(40, 40)
+    logo:SetPoint("LEFT", 18, 0)
+    logo:SetTexture(ADDON_LOGO)
+    logo:SetTexCoord(0, 1, 0, 1)
+    -- The alpha-feathered mark has no hard rectangular edge, so it can blend
+    -- naturally with the header without a visible texture square.
+    logo:SetBlendMode("BLEND")
+
     local title = CreateLabel(top, "PI Alert", 20, C.text)
-    title:SetPoint("LEFT", 22, 7)
+    title:SetPoint("LEFT", logo, "RIGHT", 10, 7)
     local subtitle = CreateLabel(top, "Power Infusion request assistant", 10, C.muted)
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
 
@@ -367,6 +429,11 @@ function UI:CreateMainFrame()
     SetBackdrop(sidebar, {0.032, 0.047, 0.064, 1}, {0.032, 0.047, 0.064, 1})
     self.sidebar = sidebar
 
+    local version = CreateLabel(sidebar, GetAddonVersion(), 10, C.muted)
+    version:SetPoint("BOTTOMLEFT", 14, 14)
+    version:SetAlpha(0.72)
+    self.versionLabel = version
+
     local content = CreateFrame("Frame", nil, frame)
     content:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 24, -20)
     content:SetPoint("BOTTOMRIGHT", -20, 18)
@@ -374,7 +441,7 @@ function UI:CreateMainFrame()
 
     self.pages = {}
     self.navButtons = {}
-    local navItems = { "Requests", "Alerts", "Spells", "Macros" }
+    local navItems = { "Requests", "Activation", "Alerts", "Spells", "Macros" }
     for i, name in ipairs(navItems) do
         local btn = CreateFrame("Button", nil, sidebar)
         btn:SetPoint("TOPLEFT", 10, -18 - (i - 1) * 48)
@@ -408,6 +475,7 @@ function UI:CreateMainFrame()
     end
 
     self:BuildRequestsPage()
+    self:BuildActivationPage()
     self:BuildSpellsPage()
     self:BuildAlertsPage()
     self:BuildMacrosPage()
@@ -450,12 +518,14 @@ end
 function UI:Refresh()
     if not self.frame then return end
     self:RefreshRequestsPage()
+    self:RefreshActivationPage()
     self:RefreshSpellsPage()
     self:RefreshAlertsPage()
 end
 
 function UI:RefreshPage(name)
     if name == "Requests" then self:RefreshRequestsPage()
+    elseif name == "Activation" then self:RefreshActivationPage()
     elseif name == "Spells" then self:RefreshSpellsPage()
     elseif name == "Alerts" then self:RefreshAlertsPage()
     end
@@ -530,6 +600,7 @@ function UI:BuildRequestsPage()
     title:SetPoint("TOPLEFT", 16, -14)
     local sub = CreateLabel(sourceCard, "Accept whispers, tracked allied cooldown buffs, or both.", 10, C.muted)
     sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    sub:SetPoint("RIGHT", -14, 0)
 
     local howLabel = CreateLabel(sourceCard, "How to accept requests", 11, C.text)
     howLabel:SetPoint("TOPLEFT", 16, -66)
@@ -861,6 +932,312 @@ function UI:RefreshPlayerRows()
 end
 
 -- -----------------------------------------------------------------------------
+-- Activation page
+-- -----------------------------------------------------------------------------
+
+local function ApplyContentRowBackground(row, hovered)
+    local entry = row.entry
+    if not entry then return end
+    if entry.type == "header" then
+        row.bg:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], hovered and 0.11 or 0.055)
+    else
+        row.bg:SetColorTexture(1, 1, 1, hovered and 0.045 or 0)
+    end
+end
+
+function UI:GetContentGroupState(group)
+    local enabled, total = 0, #group.items
+    for _, item in ipairs(group.items) do
+        if NS:GetContentSetting(group.key, item.key) then enabled = enabled + 1 end
+    end
+    if enabled == 0 then return "NONE" end
+    if enabled == total then return "ALL" end
+    return "PARTIAL"
+end
+
+function UI:SetContentGroupEnabled(group, enabled)
+    for _, item in ipairs(group.items) do
+        NS:SetContentSetting(group.key, item.key, enabled)
+    end
+    NS:RefreshEligibility(true)
+    self:RefreshActivationPage()
+end
+
+function UI:SetContentOption(group, item, enabled)
+    NS:SetContentSetting(group.key, item.key, enabled)
+    NS:RefreshEligibility(true)
+    self:RefreshActivationPage()
+end
+
+function UI:IsContentCollapsed(groupKey)
+    NS.db.ui.contentCollapsed = NS.db.ui.contentCollapsed or {}
+    return NS.db.ui.contentCollapsed[groupKey] == true
+end
+
+function UI:ToggleContentCollapsed(groupKey)
+    NS.db.ui.contentCollapsed = NS.db.ui.contentCollapsed or {}
+    NS.db.ui.contentCollapsed[groupKey] = not NS.db.ui.contentCollapsed[groupKey]
+    self:RefreshContentList()
+end
+
+function UI:BuildContentEntries()
+    local entries = {}
+    for _, group in ipairs(NS.CONTENT_GROUPS or {}) do
+        entries[#entries + 1] = {
+            type = "header",
+            group = group,
+            collapsed = group.key ~= "OPEN_WORLD" and self:IsContentCollapsed(group.key),
+        }
+        if group.key ~= "OPEN_WORLD" and not self:IsContentCollapsed(group.key) then
+            for _, item in ipairs(group.items) do
+                entries[#entries + 1] = { type = "item", group = group, item = item }
+            end
+        end
+    end
+    self.contentEntries = entries
+end
+
+function UI:BuildActivationPage()
+    local page = CreateFrame("Frame", nil, self.content)
+    page:SetAllPoints()
+    self.pages.Activation = page
+    CreatePageHeading(page, "Activation", "Choose which priest roles and content types PI Alert handles requests in.")
+
+    local roleCard = CreateCard(page, 632, 104)
+    roleCard:SetPoint("TOPLEFT", 0, -72)
+    local roleTitle = CreateLabel(roleCard, "Priest roles", 15, C.text)
+    roleTitle:SetPoint("TOPLEFT", 16, -14)
+    local roleDesc = CreateLabel(roleCard, "Healer includes Holy and Discipline; DPS includes Shadow.", 10, C.muted)
+    roleDesc:SetPoint("TOPLEFT", roleTitle, "BOTTOMLEFT", 0, -4)
+    roleDesc:SetPoint("RIGHT", -16, 0)
+
+    local function setActivationRole(role, value)
+        NS.db.activation = NS.db.activation or {}
+        NS.db.activation[role] = value and true or false
+        NS:RefreshEligibility(true)
+        UI:RefreshActivationPage()
+    end
+
+    self.activeHealerRole = CreateCheckbox(roleCard, "Healer",
+        function() return NS.db.activation and NS.db.activation.HEALER == true end,
+        function(value) setActivationRole("HEALER", value) end)
+    self.activeHealerRole:SetPoint("TOPLEFT", 16, -62)
+    self.activeHealerRole:SetWidth(130)
+
+    self.activeDpsRole = CreateCheckbox(roleCard, "DPS",
+        function() return NS.db.activation and NS.db.activation.DPS == true end,
+        function(value) setActivationRole("DPS", value) end)
+    self.activeDpsRole:SetPoint("TOPLEFT", 164, -62)
+    self.activeDpsRole:SetWidth(130)
+
+    local list = CreateCard(page, 632, 382)
+    list:SetPoint("TOPLEFT", roleCard, "BOTTOMLEFT", 0, -14)
+    self.contentList = list
+    self.contentRows = {}
+    self.contentVisibleRows = 10
+    self.contentOffset = 1
+
+    for i = 1, self.contentVisibleRows do
+        local row = CreateFrame("Button", nil, list)
+        row:SetPoint("TOPLEFT", 8, -8 - (i - 1) * 36)
+        row:SetPoint("TOPRIGHT", -28, -8 - (i - 1) * 36)
+        row:SetHeight(34)
+
+        local bg = row:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(1, 1, 1, 0)
+        row.bg = bg
+
+        local headerAccent = row:CreateTexture(nil, "BORDER")
+        headerAccent:SetPoint("TOPLEFT", 0, 0)
+        headerAccent:SetPoint("BOTTOMLEFT", 0, 0)
+        headerAccent:SetWidth(3)
+        row.headerAccent = headerAccent
+
+        local collapse = CreateLabel(row, "-", 18, C.accent)
+        collapse:SetPoint("RIGHT", -10, 1)
+        collapse:SetWidth(22)
+        collapse:SetJustifyH("CENTER")
+        row.collapse = collapse
+
+        local headerBox = CreateFrame("Button", nil, row, "BackdropTemplate")
+        headerBox:SetSize(18, 18)
+        headerBox:SetPoint("LEFT", 10, 0)
+        SetBackdrop(headerBox, {0.025, 0.037, 0.050, 1}, C.border)
+        row.headerBox = headerBox
+        local headerCheck = headerBox:CreateTexture(nil, "OVERLAY")
+        headerCheck:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+        headerCheck:SetSize(9, 9)
+        headerCheck:SetPoint("CENTER")
+        row.headerCheck = headerCheck
+        local headerMinus = headerBox:CreateTexture(nil, "OVERLAY")
+        headerMinus:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+        headerMinus:SetSize(10, 3)
+        headerMinus:SetPoint("CENTER")
+        row.headerMinus = headerMinus
+
+        local headerText = CreateLabel(row, "", 13, C.accent)
+        headerText:SetPoint("LEFT", headerBox, "RIGHT", 9, 0)
+        headerText:SetPoint("RIGHT", collapse, "LEFT", -8, 0)
+        row.headerText = headerText
+
+        local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
+        box:SetSize(18, 18)
+        -- Child content types sit beneath their parent category rather than
+        -- sharing its checkbox alignment.
+        box:SetPoint("LEFT", 26, 0)
+        SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
+        row.box = box
+        local check = box:CreateTexture(nil, "OVERLAY")
+        check:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 1)
+        check:SetSize(9, 9)
+        check:SetPoint("CENTER")
+        row.check = check
+
+        local itemText = CreateLabel(row, "", 12, C.text)
+        itemText:SetPoint("LEFT", box, "RIGHT", 9, 0)
+        itemText:SetPoint("RIGHT", -10, 0)
+        row.itemText = itemText
+
+        headerBox:SetScript("OnClick", function()
+            local entry = row.entry
+            if entry and entry.type == "header" then
+                UI:SetContentGroupEnabled(entry.group, UI:GetContentGroupState(entry.group) ~= "ALL")
+            end
+        end)
+        row:SetScript("OnEnter", function(self)
+            ApplyContentRowBackground(self, true)
+            local entry = self.entry
+            if entry and entry.type == "header" then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(entry.group.label, 1, 1, 1)
+                GameTooltip:AddLine(entry.group.description, C.muted[1], C.muted[2], C.muted[3], true)
+                GameTooltip:Show()
+            end
+        end)
+        row:SetScript("OnLeave", function(self)
+            ApplyContentRowBackground(self, false)
+            if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+        end)
+        row:SetScript("OnClick", function(self)
+            local entry = self.entry
+            if not entry then return end
+            if entry.type == "header" then
+                if entry.group.key ~= "OPEN_WORLD" then UI:ToggleContentCollapsed(entry.group.key) end
+            else
+                UI:SetContentOption(entry.group.key, entry.item.key,
+                    not NS:GetContentSetting(entry.group.key, entry.item.key))
+            end
+        end)
+        self.contentRows[i] = row
+    end
+
+    local scrollbar = CreateFrame("Slider", nil, list, "BackdropTemplate")
+    scrollbar:SetOrientation("VERTICAL")
+    scrollbar:SetPoint("TOPRIGHT", -8, -10)
+    scrollbar:SetPoint("BOTTOMRIGHT", -8, 10)
+    scrollbar:SetWidth(10)
+    SetBackdrop(scrollbar, {0.020, 0.030, 0.042, 1}, C.borderSoft)
+    scrollbar:SetMinMaxValues(1, 1)
+    scrollbar:SetValueStep(1)
+    scrollbar:SetThumbTexture("Interface\\Buttons\\WHITE8X8")
+    local thumb = scrollbar:GetThumbTexture()
+    if thumb then
+        thumb:SetSize(8, 50)
+        thumb:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.72)
+    end
+    scrollbar:SetScript("OnValueChanged", function(_, value)
+        if UI._syncingContentScrollbar then return end
+        local maxOffset = math.max(1, #(UI.contentEntries or {}) - UI.contentVisibleRows + 1)
+        local offset = math.max(1, math.min(maxOffset, math.floor((tonumber(value) or 1) + 0.5)))
+        if offset ~= UI.contentOffset then
+            UI.contentOffset = offset
+            UI:RenderContentRows()
+        end
+    end)
+    self.contentScrollbar = scrollbar
+
+    list:EnableMouseWheel(true)
+    list:SetScript("OnMouseWheel", function(_, delta)
+        local maxOffset = math.max(1, #(UI.contentEntries or {}) - UI.contentVisibleRows + 1)
+        UI.contentOffset = math.max(1, math.min(maxOffset, (UI.contentOffset or 1) - delta * 3))
+        UI:RenderContentRows()
+        UI:SyncContentScrollbar()
+    end)
+end
+
+function UI:RenderContentRows()
+    local entries = self.contentEntries or {}
+    local offset = self.contentOffset or 1
+    for i, row in ipairs(self.contentRows or {}) do
+        local entry = entries[offset + i - 1]
+        row.entry = entry
+        if not entry then
+            row:Hide()
+        elseif entry.type == "header" then
+            row:Show()
+            row.headerAccent:Show()
+            row.headerAccent:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.85)
+            row.headerBox:Show()
+            row.headerText:Show()
+            row.itemText:Hide()
+            row.box:Hide()
+            row.collapse:SetShown(entry.group.key ~= "OPEN_WORLD")
+            row.collapse:SetText(entry.collapsed and "+" or "-")
+            row.headerText:SetText(entry.group.label)
+            local state = self:GetContentGroupState(entry.group)
+            row.headerCheck:SetShown(state == "ALL")
+            row.headerMinus:SetShown(state == "PARTIAL")
+            row.headerBox:SetBackdropBorderColor(unpack(state == "NONE" and C.border or C.accentDim))
+            ApplyContentRowBackground(row, false)
+        else
+            row:Show()
+            row.headerAccent:Hide()
+            row.headerBox:Hide()
+            row.headerText:Hide()
+            row.collapse:Hide()
+            row.box:Show()
+            row.itemText:Show()
+            row.itemText:SetText(entry.item.label)
+            local enabled = NS:GetContentSetting(entry.group.key, entry.item.key)
+            row.check:SetShown(enabled)
+            row.box:SetBackdropBorderColor(unpack(enabled and C.accentDim or C.border))
+            ApplyContentRowBackground(row, false)
+        end
+    end
+end
+
+function UI:SyncContentScrollbar()
+    local scrollbar = self.contentScrollbar
+    if not scrollbar then return end
+    local total = #(self.contentEntries or {})
+    local maxOffset = math.max(1, total - (self.contentVisibleRows or 1) + 1)
+    self.contentOffset = math.max(1, math.min(maxOffset, self.contentOffset or 1))
+    self._syncingContentScrollbar = true
+    scrollbar:SetMinMaxValues(1, maxOffset)
+    scrollbar:SetValue(self.contentOffset)
+    self._syncingContentScrollbar = false
+    scrollbar:SetAlpha(maxOffset <= 1 and 0.28 or 1)
+    scrollbar:EnableMouse(maxOffset > 1)
+end
+
+function UI:RefreshContentList()
+    if not self.contentRows then return end
+    self:BuildContentEntries()
+    local maxOffset = math.max(1, #self.contentEntries - self.contentVisibleRows + 1)
+    self.contentOffset = math.max(1, math.min(maxOffset, self.contentOffset or 1))
+    self:RenderContentRows()
+    self:SyncContentScrollbar()
+end
+
+function UI:RefreshActivationPage()
+    if not self.contentRows then return end
+    if self.activeHealerRole then self.activeHealerRole:Refresh() end
+    if self.activeDpsRole then self.activeDpsRole:Refresh() end
+    self:RefreshContentList()
+end
+
+-- -----------------------------------------------------------------------------
 -- Spells page
 -- -----------------------------------------------------------------------------
 
@@ -1007,7 +1384,9 @@ function UI:BuildSpellsPage()
 
         local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
         box:SetSize(18, 18)
-        box:SetPoint("LEFT", 6, 0)
+        -- Spell rows are children of their class header, so indent the full
+        -- checkbox/icon/label stack beneath that header.
+        box:SetPoint("LEFT", 26, 0)
         SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
         row.box = box
         local check = box:CreateTexture(nil, "OVERLAY")

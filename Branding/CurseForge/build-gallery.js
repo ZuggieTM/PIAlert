@@ -4,7 +4,7 @@ const sharp = require("sharp");
 const ROOT = __dirname;
 const OUT = path.join(ROOT, "gallery");
 const BACKGROUND = path.join(ROOT, "assets", "gallery-background-frameless.png");
-const LOGO = path.join(ROOT, "assets", "pialert-mark.png");
+const LOGO = path.join(ROOT, "assets", "pialert-mark-feathered.png");
 const SCREENSHOTS = "C:\\Program Files (x86)\\World of Warcraft\\_retail_\\Screenshots";
 
 const WIDTH = 2048;
@@ -36,21 +36,8 @@ const slides = [
     caption: "See the request. Find the player. Cast Power Infusion.",
   },
   {
-    output: "02-alerts.jpg",
-    source: "WoWScrnShot_082726_170024.jpg",
-    crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 760, y: 185, width: 1210, height: 756 },
-    eyebrow: "CUSTOM ALERTS",
-    title: ["Never miss", "a PI request."],
-    body: [
-      "Choose animated raidframe glows, icons,",
-      "cooldown swipes, sounds and a movable aura.",
-    ],
-    bullets: ["Pixel and AutoCast glows", "PI or tracked-spell icons", "Whisper-only sound controls"],
-  },
-  {
-    output: "03-requests.jpg",
-    source: "WoWScrnShot_082726_170021.jpg",
+    output: "02-requests.jpg",
+    source: "WoWScrnShot_083126_111855.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "REQUEST CONTROL",
@@ -62,8 +49,34 @@ const slides = [
     bullets: ["Custom whisper phrases", "Group or priority-player rules", "Configurable fallback behavior"],
   },
   {
-    output: "04-spells.jpg",
-    source: "WoWScrnShot_082726_170044.jpg",
+    output: "03-activation.jpg",
+    source: "WoWScrnShot_083126_111857.jpg",
+    crop: { left: 2659, top: 125, width: 1512, height: 945 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    eyebrow: "SMART ACTIVATION",
+    title: ["PI alerts,", "only where", "you want them."],
+    body: [
+      "Choose which priest role and content types",
+      "should activate PI Alert for you.",
+    ],
+    bullets: ["Healer or DPS roles", "Dungeon and raid difficulties", "Optional PvP, delves and open world"],
+  },
+  {
+    output: "04-alerts.jpg",
+    source: "WoWScrnShot_083126_111859.jpg",
+    crop: { left: 2659, top: 125, width: 1512, height: 945 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    eyebrow: "CUSTOM ALERTS",
+    title: ["Never miss", "a PI request."],
+    body: [
+      "Choose animated raidframe glows, icons,",
+      "cooldown swipes, sounds and a movable aura.",
+    ],
+    bullets: ["Pixel and AutoCast glows", "PI or tracked-spell icons", "Whisper-only sound controls"],
+  },
+  {
+    output: "05-spells.jpg",
+    source: "WoWScrnShot_083126_111901.jpg",
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "COOLDOWN TRACKING",
@@ -75,7 +88,20 @@ const slides = [
     bullets: ["Class-organized presets", "Custom spell support", "Multiple aura IDs per cooldown"],
   },
   {
-    output: "05-right-click.jpg",
+    output: "06-macros.jpg",
+    source: "WoWScrnShot_083126_111903.jpg",
+    crop: { left: 2659, top: 125, width: 1512, height: 945 },
+    shot: { x: 760, y: 185, width: 1210, height: 756 },
+    eyebrow: "BUILT-IN MACROS",
+    title: ["One click to the", "right target."],
+    body: [
+      "Create safe Power Infusion macros without",
+      "copying syntax or editing macro text by hand.",
+    ],
+    bullets: ["Player targeting", "Focus targeting", "Mouseover fallback"],
+  },
+  {
+    output: "07-right-click.jpg",
     source: "WoWScrnShot_082726_214545.jpg",
     crop: { left: 2300, top: 200, width: 1600, height: 1000 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
@@ -86,19 +112,6 @@ const slides = [
       "priority or set the named target in your PI macro.",
     ],
     bullets: ["Dedicated PI Alert menu section", "Toggle Specific Players instantly", "Set Player macro targets"],
-  },
-  {
-    output: "06-macros.jpg",
-    source: "WoWScrnShot_082726_170047.jpg",
-    crop: { left: 2659, top: 125, width: 1512, height: 945 },
-    shot: { x: 760, y: 185, width: 1210, height: 756 },
-    eyebrow: "BUILT-IN MACROS",
-    title: ["One click to the", "right target."],
-    body: [
-      "Create safe Power Infusion macros without",
-      "copying syntax or editing macro text by hand.",
-    ],
-    bullets: ["Player targeting", "Focus targeting", "Mouseover fallback"],
   },
 ];
 
@@ -212,7 +225,7 @@ async function buildSlide(slide) {
     .composite([
       { input: screenshot, left: slide.shot.x, top: slide.shot.y },
       { input: overlaySvg(slide), left: 0, top: 0 },
-      { input: logo, left: 112, top: 76, blend: "screen" },
+      { input: logo, left: 112, top: 76 },
     ])
     .jpeg({ quality: 92, chromaSubsampling: "4:4:4", mozjpeg: true })
     .toFile(path.join(OUT, slide.output));

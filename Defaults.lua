@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 12
+NS.SETTINGS_REVISION = 14
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -24,6 +24,63 @@ NS.CLASS_NAMES = {
     SHAMAN = "Shaman",
     WARLOCK = "Warlock",
     WARRIOR = "Warrior",
+}
+
+-- Content settings are grouped for the Activation page. Open world is a
+-- single toggle; every other group exposes individual instance types.
+NS.CONTENT_GROUPS = {
+    {
+        key = "OPEN_WORLD",
+        label = "Open world",
+        description = "Outdoor content, including non-instanced group content.",
+        items = { { key = "OPEN_WORLD", label = "Open world" } },
+    },
+    {
+        key = "DUNGEON",
+        label = "Dungeons",
+        description = "Choose which dungeon difficulties can create PI requests.",
+        items = {
+            { key = "NORMAL", label = "Normal / Follower" },
+            { key = "HEROIC", label = "Heroic" },
+            { key = "MYTHIC", label = "Mythic" },
+            { key = "MYTHIC_PLUS", label = "Mythic+" },
+            { key = "TIMEWALKING", label = "Timewalking" },
+        },
+    },
+    {
+        key = "RAID",
+        label = "Raids",
+        description = "Choose which raid difficulties can create PI requests.",
+        items = {
+            { key = "LFR", label = "LFR" },
+            { key = "NORMAL", label = "Normal" },
+            { key = "HEROIC", label = "Heroic" },
+            { key = "MYTHIC", label = "Mythic" },
+            { key = "TIMEWALKING", label = "Timewalking" },
+        },
+    },
+    {
+        key = "PVP",
+        label = "PvP",
+        description = "Choose which instanced PvP modes can create PI requests.",
+        items = {
+            { key = "BATTLEGROUND", label = "Battlegrounds" },
+            { key = "RATED_BATTLEGROUND", label = "Rated Battlegrounds" },
+            { key = "ARENA_SKIRMISH", label = "Arena Skirmish" },
+            { key = "RATED_ARENA", label = "Rated Arena" },
+            { key = "SOLO_SHUFFLE", label = "Solo Shuffle" },
+            { key = "WAR_GAME", label = "War Games" },
+        },
+    },
+    {
+        key = "SCENARIO",
+        label = "Delves & scenarios",
+        description = "Choose whether PI Alert is active in delves and other scenarios.",
+        items = {
+            { key = "DELVE", label = "Delves" },
+            { key = "OTHER", label = "Scenarios & other" },
+        },
+    },
 }
 
 -- This is intentionally a curated starter list rather than a spec tree. The UI resolves
@@ -131,6 +188,43 @@ NS.DEFAULTS = {
         },
     },
 
+    -- Holy and Discipline commonly coordinate PI requests for the group,
+    -- while Shadow usually spends PI on their own cooldown window.
+    activation = {
+        HEALER = true, -- Holy and Discipline
+        DPS = false,   -- Shadow
+    },
+
+    content = {
+        OPEN_WORLD = false,
+        DUNGEON = {
+            NORMAL = true,
+            HEROIC = true,
+            MYTHIC = true,
+            MYTHIC_PLUS = true,
+            TIMEWALKING = true,
+        },
+        RAID = {
+            LFR = true,
+            NORMAL = true,
+            HEROIC = true,
+            MYTHIC = true,
+            TIMEWALKING = true,
+        },
+        PVP = {
+            BATTLEGROUND = false,
+            RATED_BATTLEGROUND = false,
+            ARENA_SKIRMISH = false,
+            RATED_ARENA = false,
+            SOLO_SHUFFLE = false,
+            WAR_GAME = false,
+        },
+        SCENARIO = {
+            DELVE = false,
+            OTHER = false,
+        },
+    },
+
     requesters = {
         mode = "EVERYONE", -- EVERYONE, FOCUS, SPECIFIC
         fallback = "NONE", -- NONE, FOCUS, EVERYONE; used only when SPECIFIC has no listed players present
@@ -185,6 +279,7 @@ NS.DEFAULTS = {
         y = 0,
         page = "Requests",
         spellCollapsed = {},
+        contentCollapsed = {},
     },
 
     debug = false,
