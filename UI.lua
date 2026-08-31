@@ -533,7 +533,7 @@ function UI:BuildRequestsPage()
     sub:SetPoint("RIGHT", -272, 0)
 
     local activationLabel = CreateLabel(sourceCard, "Active roles", 10, C.muted)
-    activationLabel:SetPoint("TOPLEFT", 364, -14)
+    activationLabel:SetPoint("TOPLEFT", 346, -14)
 
     local function setActivationRole(role, value)
         NS.db.activation = NS.db.activation or {}
@@ -542,16 +542,16 @@ function UI:BuildRequestsPage()
         UI:RefreshRequestsPage()
     end
 
-    self.activeHealerRole = CreateCheckbox(sourceCard, "Healer (Holy/Disc)",
+    self.activeHealerRole = CreateCheckbox(sourceCard, "Healer",
         function() return NS.db.activation and NS.db.activation.HEALER == true end,
         function(value) setActivationRole("HEALER", value) end)
-    self.activeHealerRole:SetPoint("TOPLEFT", 364, -36)
-    self.activeHealerRole:SetWidth(148)
+    self.activeHealerRole:SetPoint("TOPLEFT", 346, -36)
+    self.activeHealerRole:SetWidth(112)
 
-    self.activeDpsRole = CreateCheckbox(sourceCard, "DPS (Shadow)",
+    self.activeDpsRole = CreateCheckbox(sourceCard, "DPS",
         function() return NS.db.activation and NS.db.activation.DPS == true end,
         function(value) setActivationRole("DPS", value) end)
-    self.activeDpsRole:SetPoint("TOPLEFT", 516, -36)
+    self.activeDpsRole:SetPoint("TOPLEFT", 466, -36)
     self.activeDpsRole:SetPoint("RIGHT", -14, 0)
 
     local howLabel = CreateLabel(sourceCard, "How to accept requests", 11, C.text)
