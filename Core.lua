@@ -15,8 +15,6 @@ local function MergeDefaults(target, defaults)
     for k, v in pairs(defaults) do
         if type(v) == "table" then
             -- Non-empty arrays are user-owned values, not configuration maps.
-            -- In particular, an intentionally empty phrase list must remain
-            -- empty instead of having the default phrase merged back into it.
             if #v > 0 then
                 if type(target[k]) ~= "table" then target[k] = DeepCopy(v) end
             else
@@ -507,14 +505,6 @@ function NS:InitializeDatabase()
         if (tonumber(PIAlertDB.settingsRevision) or 1) < 4 then
             PIAlertDB.settingsRevision = 4
         end
-        if (tonumber(PIAlertDB.settingsRevision) or 1) < 5 then
-            -- 1.0.22: Grace Period was removed because numeric spell cooldown
-            -- values can become secret during combat in Midnight.
-            if PIAlertDB.requests then
-                PIAlertDB.requests.gracePeriod = nil
-            end
-            PIAlertDB.settingsRevision = 5
-        end
         if (tonumber(PIAlertDB.settingsRevision) or 1) < 6 then
             if PIAlertDB.alerts then
                 PIAlertDB.alerts.glowAutoCastParticles = nil
@@ -534,20 +524,6 @@ function NS:InitializeDatabase()
             PIAlertDB.alerts = PIAlertDB.alerts or {}
             PIAlertDB.alerts.spellAlertTiming = "PI_READY"
             PIAlertDB.settingsRevision = 8
-        end
-        if (tonumber(PIAlertDB.settingsRevision) or 1) < 9 then
-            -- Alert cards gained explicit raidframe icon and whisper cooldown
-            -- behavior. MergeDefaults supplies the compatibility-preserving
-            -- values for existing users.
-            PIAlertDB.settingsRevision = 9
-        end
-        if (tonumber(PIAlertDB.settingsRevision) or 1) < 10 then
-            -- Whisper sounds now use one fixed anti-spam window instead of a
-            -- user-facing throttle setting.
-            if PIAlertDB.alerts then
-                PIAlertDB.alerts.soundCooldown = nil
-            end
-            PIAlertDB.settingsRevision = 10
         end
         if (tonumber(PIAlertDB.settingsRevision) or 1) < 11 then
             -- Store the optional account-wide PI macro target. MergeDefaults
@@ -575,6 +551,18 @@ function NS:InitializeDatabase()
             -- Dungeons and raids start enabled; all other content remains
             -- opt-in, as supplied by MergeDefaults.
             PIAlertDB.settingsRevision = 14
+        end
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 15 then
+            -- Whisper requests cannot be processed reliably in Blizzard's chat
+            -- lockdown. PI Alert now uses tracked allied cooldowns exclusively.
+            PIAlertDB.requests = nil
+            if PIAlertDB.alerts then
+                PIAlertDB.alerts.sound = nil
+                PIAlertDB.alerts.soundKey = nil
+                PIAlertDB.alerts.soundCooldown = nil
+                PIAlertDB.alerts.whisperOnPICooldown = nil
+            end
+            PIAlertDB.settingsRevision = 15
         end
     end
     self.db = PIAlertDB

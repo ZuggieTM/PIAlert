@@ -3,8 +3,6 @@ local ADDON_NAME, NS = ...
 local FA = {}
 NS.FrameAlerts = FA
 
-local WHISPER_SOUND_THROTTLE = 3
-
 local function GetAuraIconDefaults()
     return NS.DEFAULTS.auraIcon
 end
@@ -53,7 +51,6 @@ end
 function FA:Init()
     self.frameVisuals = setmetatable({}, { __mode = "k" })
     self.visuals = {}
-    self.lastSoundAt = -1000
     self.auraUnlocked = false
     self.lgf = nil
     self.glowKey = "PIAlert"
@@ -514,8 +511,7 @@ function FA:ApplyRequestVisual(request)
             iconSpellID = request.spellID
         end
         visual.icon:SetTexture(NS:GetSpellIcon(iconSpellID))
-        local showRequestSwipe = NS.db.alerts.frameIconCooldownSwipe ~= false
-            and (request.source == "WHISPER" or request.source == "TEST")
+        local showRequestSwipe = NS.db.alerts.frameIconCooldownSwipe ~= false and request.source == "TEST"
         local swipeDuration = (tonumber(request.expiresAt) or 0) - (tonumber(request.requestedAt) or 0)
         if showRequestSwipe and swipeDuration > 0 then
             visual.iconCooldown:SetCooldown(request.requestedAt, swipeDuration)
@@ -534,14 +530,6 @@ function FA:ActivateRequest(request, wasActive)
     self:ApplyRequestVisual(request)
     self:UpdateAuraIcon(NS.RequestManager:GetActiveCount())
 
-    local playsWhisperSound = request and (request.source == "WHISPER" or request.source == "TEST")
-    if playsWhisperSound and not wasActive and NS.db.alerts.sound then
-        local now = GetTime()
-        if now - (self.lastSoundAt or -1000) >= WHISPER_SOUND_THROTTLE then
-            if NS.Media then NS.Media:Play(NS.db.alerts.soundKey) end
-            self.lastSoundAt = now
-        end
-    end
 end
 
 function FA:RefreshRequest(request)

@@ -8,30 +8,6 @@ local SECURE_MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\"
 local SECURE_DASH_H = SECURE_MEDIA .. "secure-dash-h.tga"
 local SECURE_DASH_V = SECURE_MEDIA .. "secure-dash-v.tga"
 
-local function IsWordChar(ch)
-    return ch and ch ~= "" and ch:match("[%w]") ~= nil
-end
-
-local function ContainsPhrase(message, phrase)
-    if message == "" or phrase == "" then return false end
-    local searchFrom = 1
-    while true do
-        local first, last = message:find(phrase, searchFrom, true)
-        if not first then return false end
-
-        local phraseFirst = phrase:sub(1, 1)
-        local phraseLast = phrase:sub(-1)
-        local before = first > 1 and message:sub(first - 1, first - 1) or nil
-        local after = last < #message and message:sub(last + 1, last + 1) or nil
-
-        local beforeOkay = not IsWordChar(phraseFirst) or not IsWordChar(before)
-        local afterOkay = not IsWordChar(phraseLast) or not IsWordChar(after)
-        if beforeOkay and afterOkay then return true end
-
-        searchFrom = first + 1
-    end
-end
-
 local function SafeDisableContainer(container)
     if not container then return end
     if container.SetEnabled then pcall(container.SetEnabled, container, false) end
@@ -277,7 +253,6 @@ function Detector:Init()
     self.piCooldownLatched = false
     self.lastPIReady = nil
     self.frame = CreateFrame("Frame")
-    self.frame:RegisterEvent("CHAT_MSG_WHISPER")
     self.frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     self.frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
     self.frame:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -287,9 +262,7 @@ function Detector:Init()
             return
         end
         if not NS:IsActive() then return end
-        if event == "CHAT_MSG_WHISPER" then
-            Detector:OnWhisper(...)
-        elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+        if event == "UNIT_SPELLCAST_SUCCEEDED" then
             Detector:OnSpellcast(...)
         elseif event == "SPELL_UPDATE_COOLDOWN" then
             Detector:OnPICooldownChanged(true)
@@ -317,7 +290,7 @@ function Detector:OnPlayerRegenEnabled()
     self:OnPICooldownChanged(false)
     -- AuraContainer construction is restricted.
     -- Coalesce every combat-time request into one clean out-of-combat refresh.
-    if self.pendingAuraRefresh or (self:ShouldEnableSpellVisuals() and self:AllowsSource("SPELL")) then
+    if self.pendingAuraRefresh or self:ShouldEnableSpellVisuals() then
         self.pendingAuraRefresh = false
         self:ScheduleAuraRefresh(0.05)
     end
@@ -398,9 +371,7 @@ function Detector:OnPICooldownChanged(fromCooldownEvent)
     local ready = self:QueryPIReady(fromCooldownEvent == true)
     if ready ~= self.lastPIReady then
         self.lastPIReady = ready
-        if self:AllowsSource("SPELL") then
-            self:ScheduleAuraRefresh(0.02)
-        end
+        self:ScheduleAuraRefresh(0.02)
     end
 end
 
@@ -421,31 +392,6 @@ function Detector:OnSettingsChanged()
     -- Restricted aura buttons are immutable after their initialization callback.
     -- RefreshAuraState rebuilds only when the frozen visual signature changed.
     self:ScheduleAuraRefresh(0.08)
-end
-
-function Detector:AllowsSource(source)
-    local mode = NS.db.requests.mode
-    if mode == "BOTH" then return true end
-    if source == "WHISPER" then return mode == "WHISPER" end
-    if source == "SPELL" then return mode == "SPELL" end
-    return false
-end
-
-function Detector:MatchesWhisper(message)
-    local msg = strtrim(message or ""):lower()
-    if msg == "" then return false end
-
-    for _, phrase in ipairs(NS.db.requests.phrases or {}) do
-        local text = strtrim(phrase.text or ""):lower()
-        if text ~= "" then
-            if phrase.match == "EXACT" then
-                if msg == text then return true end
-            else
-                if ContainsPhrase(msg, text) then return true end
-            end
-        end
-    end
-    return false
 end
 
 function Detector:GetSpecificPlayerSet()
@@ -522,40 +468,6 @@ end
 
 function Detector:IsSpellTracked(spellID)
     return NS.db.spells and NS.db.spells[tonumber(spellID)] == true
-end
-
-function Detector:OnWhisper(message, sender, ...)
-    if not NS.db or not self:AllowsSource("WHISPER") then return end
-    if not self:MatchesWhisper(message) then return end
-
-    -- CHAT_MSG_WHISPER argument 12 is the sender GUID. Ten arguments remain
-    -- after message and sender, so prefer that exact identity over display-name
-    -- parsing and retain the name lookup for compatibility/fallback.
-    local senderGUID = select(10, ...)
-    local groupUnit = NS:FindGroupUnitByGUID(senderGUID)
-    if not groupUnit and not NS:IsSecretValue(senderGUID) and senderGUID ~= nil
-        and type(UnitTokenFromGUID) == "function"
-    then
-        local ok, token = pcall(UnitTokenFromGUID, senderGUID)
-        if ok and not NS:IsSecretValue(token) and NS:IsGroupUnit(token) then
-            groupUnit = token
-        end
-    end
-
-    local allowed, unit = self:IsRequesterAllowed(groupUnit, sender)
-    if not allowed then
-        local guidText = NS:IsSecretValue(senderGUID) and "<secret>" or tostring(senderGUID)
-        NS:Debug(string.format(
-            "Whisper matched but requester was not allowed: sender=%s, guid=%s, resolved=%s, mode=%s.",
-            tostring(sender), guidText, tostring(groupUnit),
-            tostring(NS.db.requesters and NS.db.requesters.mode)
-        ))
-        return
-    end
-
-    local name = UnitName(unit) or sender
-    NS:Debug("Whisper request from " .. tostring(name) .. ": " .. tostring(message))
-    NS.RequestManager:Receive(UnitGUID(unit), name, unit, "WHISPER", nil, message)
 end
 
 -- -----------------------------------------------------------------------------
@@ -890,11 +802,6 @@ function Detector:RefreshAuraState(unit)
     if not unit or not UnitExists(unit) then return end
     local state = self.auraStates[unit]
 
-    if not self:AllowsSource("SPELL") then
-        if state then self:RetireAuraState(state); self.auraStates[unit] = nil end
-        return
-    end
-
     local allowed = self:IsRequesterAllowed(unit, UnitName(unit))
     if not allowed then
         if state then self:RetireAuraState(state); self.auraStates[unit] = nil end
@@ -970,11 +877,6 @@ function Detector:RefreshAuraDetectors()
         return
     end
     self.pendingAuraRefresh = false
-
-    if not self:AllowsSource("SPELL") then
-        self:ClearAuraStates()
-        return
-    end
 
     self.lastPIReady = self:IsPIReady()
     if not self:ShouldEnableSpellVisuals() then
@@ -1058,8 +960,6 @@ function Detector:OnSpellcast(unit, castGUID, spellID, castBarID)
         end
         return
     end
-
-    if not self:AllowsSource("SPELL") then return end
 
     -- Allied spell IDs can be secret in Midnight. That's expected now; the
     -- secure CustomAuraContainer above handles allied buff matching visually.

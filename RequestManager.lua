@@ -4,6 +4,7 @@ local RM = {}
 NS.RequestManager = RM
 
 local max = math.max
+local TEST_ALERT_DURATION = 5
 
 function RM:Init()
     self.active = {}
@@ -31,66 +32,12 @@ function RM:ScheduleExpiry(request)
     end)
 end
 
-function RM:Receive(guid, name, unit, source, spellID, message)
-    if not NS.db or not NS:IsActive() then return end
-
-    -- Midnight can make numeric cooldown values secret in combat. PI Alert only
-    -- needs a yes/no readiness state here, which Detector maintains from the
-    -- public NeverSecret cooldown flags. There is intentionally no grace-period
-    -- math anymore.
-    local allowWhisperOnCooldown = source == "WHISPER"
-        and NS.db.alerts
-        and NS.db.alerts.whisperOnPICooldown == true
-    if NS.Detector and not NS.Detector:IsPIReady() and not allowWhisperOnCooldown then
-        NS:Debug("Ignored " .. tostring(source or "request") .. " from " .. tostring(NS:DisplayBaseName(name or "Unknown")) .. "; PI is not ready.")
-        return
-    end
-
-    local now = GetTime()
-    local key = self:MakeKey(guid, name)
-    local displayName = NS:DisplayBaseName(name or (unit and UnitName(unit)) or "Unknown")
-    local duration = tonumber(NS.db.requests.duration) or 5
-
-    local existing = self.active[key]
-    if existing and source == "WHISPER" then
-        NS:Debug("Ignored repeated whisper from " .. displayName .. "; their active request is still running.")
-        return
-    end
-
-    if existing then
-        existing.requestedAt = now
-        existing.expiresAt = now + duration
-        existing.unit = unit or existing.unit
-        existing.name = displayName
-        existing.source = source
-        existing.spellID = spellID or existing.spellID
-        existing.message = message or existing.message
-        self:ScheduleExpiry(existing)
-        NS:Debug("Refreshed active request from " .. displayName)
-        if NS.FrameAlerts then NS.FrameAlerts:RefreshRequest(existing) end
-        return
-    end
-
-    local request = {
-        key = key,
-        guid = guid,
-        name = displayName,
-        unit = unit,
-        source = source,
-        spellID = spellID,
-        message = message,
-        requestedAt = now,
-    }
-
-    self:Activate(request)
-end
-
 function RM:Activate(request)
     local now = GetTime()
     local key = request.key
     local wasActive = self.active[key] ~= nil
     request.requestedAt = now
-    request.expiresAt = now + (tonumber(NS.db.requests.duration) or 5)
+    request.expiresAt = now + TEST_ALERT_DURATION
     self.active[key] = request
     self:ScheduleExpiry(request)
 

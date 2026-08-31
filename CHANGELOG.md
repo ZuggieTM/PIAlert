@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- PI Alert now uses tracked allied cooldown buffs exclusively. The Requests page
+  focuses on requester rules, and the Alerts page contains only the visuals used
+  for tracked cooldown alerts.
+
+### Removed
+
+- Removed chat-based request handling, request-source selection, phrase rules,
+  request sounds, and related saved settings.
+
 ## 1.1.0
 
 Power Infusion sounds now work on their own, the addon has an icon, and a macro
