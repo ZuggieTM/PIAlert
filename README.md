@@ -2,7 +2,7 @@
 
 PI Alert is a Power Infusion assistant for World of Warcraft Retail. It highlights eligible party and raid members when they activate a configured major cooldown, helping Priests coordinate Power Infusion during the content where it matters.
 
-Version: **1.1.0**  
+Version: **1.2.0**
 Game version: **Midnight 12.1**
 
 ## Features
