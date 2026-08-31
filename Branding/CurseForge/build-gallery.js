@@ -29,10 +29,10 @@ const slides = [
     eyebrow: "POWER INFUSION ASSISTANT",
     title: ["Give PI to the", "right player."],
     body: [
-      "PI Alert turns whispers and major cooldowns",
-      "into clear, immediate targeting cues.",
+      "PI Alert turns major cooldowns into",
+      "clear, immediate targeting cues.",
     ],
-    pills: ["Whispers", "Cooldowns", "Raidframes"],
+    pills: ["Cooldowns", "Raidframes", "Macros"],
     caption: "See the request. Find the player. Cast Power Infusion.",
   },
   {
@@ -41,12 +41,12 @@ const slides = [
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "REQUEST CONTROL",
-    title: ["You decide who", "can ask for PI."],
+    title: ["You decide who", "can trigger PI."],
     body: [
-      "Accept whispers, tracked spell casts, or both—",
-      "then limit requests to the players you trust.",
+      "Track the cooldowns that matter, then limit",
+      "alerts to the players you trust.",
     ],
-    bullets: ["Custom whisper phrases", "Group or priority-player rules", "Configurable fallback behavior"],
+    bullets: ["Tracked allied cooldowns", "Group or priority-player rules", "Configurable fallback behavior"],
   },
   {
     output: "03-activation.jpg",
@@ -67,12 +67,12 @@ const slides = [
     crop: { left: 2659, top: 125, width: 1512, height: 945 },
     shot: { x: 760, y: 185, width: 1210, height: 756 },
     eyebrow: "CUSTOM ALERTS",
-    title: ["Never miss", "a PI request."],
+    title: ["Never miss", "a PI cooldown."],
     body: [
       "Choose animated raidframe glows, icons,",
-      "cooldown swipes, sounds and a movable aura.",
+      "cooldown swipes and a movable aura icon.",
     ],
-    bullets: ["Pixel and AutoCast glows", "PI or tracked-spell icons", "Whisper-only sound controls"],
+    bullets: ["Pixel and AutoCast glows", "PI or tracked-spell icons", "Movable aura icon"],
   },
   {
     output: "05-spells.jpg",

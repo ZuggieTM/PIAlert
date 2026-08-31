@@ -3,7 +3,7 @@ local ADDON_NAME, NS = ...
 NS.ADDON_NAME = ADDON_NAME
 NS.PI_SPELL_ID = 10060
 NS.DB_SCHEMA = 1
-NS.SETTINGS_REVISION = 14
+NS.SETTINGS_REVISION = 15
 
 NS.CLASS_ORDER = {
     "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
@@ -179,15 +179,6 @@ NS.DEFAULTS = {
     schema = NS.DB_SCHEMA,
     settingsRevision = NS.SETTINGS_REVISION,
 
-    requests = {
-        mode = "BOTH", -- BOTH, WHISPER, SPELL
-        duration = 5,
-        phrases = {
-            { text = "PI", match = "CONTAINS" },
-            { text = "Power Infusion", match = "CONTAINS" },
-        },
-    },
-
     -- Holy and Discipline commonly coordinate PI requests for the group,
     -- while Shadow usually spends PI on their own cooldown window.
     activation = {
@@ -245,16 +236,13 @@ NS.DEFAULTS = {
     alerts = {
         glow = true,
         frameIcon = true,
-        frameIconType = "PI", -- PI, SPELL; whispers always fall back to PI
+        frameIconType = "PI", -- PI, SPELL
         frameIconCooldownSwipe = true,
         auraIcon = true,
-        sound = true,
-        whisperOnPICooldown = false,
         spellAlertTiming = "PI_READY", -- PI_READY, ALWAYS_TRACK
-        soundKey = "addon:pi-voice-soft",
 
-        -- Whisper alerts and secure allied spell alerts both use native
-        -- AnimationGroups; the secure pulse is frozen during AuraButton init.
+        -- Secure allied spell alerts use native AnimationGroups; the secure
+        -- pulse is frozen during AuraButton initialization.
         glowStyle = "PIXEL", -- PIXEL, AUTOCAST, BUTTON
         glowColorMode = "CUSTOM", -- CUSTOM, CLASS
         glowColor = { 1.00, 0.82, 0.20, 1.00 },

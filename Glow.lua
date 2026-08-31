@@ -32,7 +32,7 @@ function Glow:Stop(frame)
     pcall(StopFlipbook, frame)
 end
 
--- Animated glow engine for ordinary whisper/self-test request frames. Restricted
+-- Animated glow engine for ordinary self-test request frames. Restricted
 -- 12.1 aura buttons use Detector's initialization-frozen native animations.
 function Glow:StartPixel(frame, width, height, color, cfg)
     if not frame then return false end

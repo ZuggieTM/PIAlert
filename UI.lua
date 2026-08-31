@@ -17,7 +17,6 @@ local C = {
     warning = {0.95, 0.72, 0.26, 1},
 }
 
-local SOUND_PREVIEW_ICON = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\sound-preview.tga"
 local ADDON_LOGO = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\pialert-icon-feathered.tga"
 
 local function GetAddonVersion()
@@ -73,62 +72,6 @@ local function CreateButton(parent, text, width, height, accent)
     end
 
     return btn
-end
-
-local function GetSoundPreviewTooltip()
-    if UI.soundPreviewTooltip then return UI.soundPreviewTooltip end
-
-    local tooltip = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-    tooltip:SetFrameStrata("TOOLTIP")
-    tooltip:SetFrameLevel(1000)
-    tooltip:SetClampedToScreen(true)
-    SetBackdrop(tooltip, C.panel2, C.border)
-
-    local label = CreateLabel(tooltip, "Preview sound", 11, C.text)
-    label:SetPoint("CENTER")
-    tooltip:SetSize(math.ceil(label:GetStringWidth()) + 20, 28)
-    tooltip.label = label
-    tooltip:Hide()
-
-    UI.soundPreviewTooltip = tooltip
-    return tooltip
-end
-
-local function ShowSoundPreviewTooltip(owner)
-    local tooltip = GetSoundPreviewTooltip()
-    tooltip.owner = owner
-    tooltip:ClearAllPoints()
-    tooltip:SetPoint("BOTTOMRIGHT", owner, "TOPRIGHT", 0, 5)
-    tooltip:SetFrameLevel(math.max(1000, owner:GetFrameLevel() + 20))
-    tooltip:Show()
-end
-
-local function HideSoundPreviewTooltip(owner)
-    local tooltip = UI.soundPreviewTooltip
-    if tooltip and tooltip.owner == owner then
-        tooltip.owner = nil
-        tooltip:Hide()
-    end
-end
-
-local function StyleSoundPreviewButton(button)
-    button:SetLabel("")
-
-    local icon = button:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(16, 16)
-    icon:SetPoint("CENTER")
-    icon:SetTexture(SOUND_PREVIEW_ICON)
-    icon:SetVertexColor(unpack(C.accent))
-    button.previewIcon = icon
-
-    button:HookScript("OnEnter", function(self)
-        icon:SetVertexColor(unpack(C.text))
-        ShowSoundPreviewTooltip(self)
-    end)
-    button:HookScript("OnLeave", function(self)
-        icon:SetVertexColor(unpack(C.accent))
-        HideSoundPreviewTooltip(self)
-    end)
 end
 
 local function CreateEditBox(parent, width, height, placeholder)
@@ -590,39 +533,22 @@ function UI:BuildRequestsPage()
     local page = CreateFrame("Frame", nil, self.content)
     page:SetAllPoints()
     self.pages.Requests = page
-    CreatePageHeading(page, "Requests", "Choose how requests are accepted, who can make them, and which whisper phrases are recognized.")
+    CreatePageHeading(page, "Requests", "Choose which group members can trigger PI Alert from their tracked cooldowns.")
 
-    local sourceCard = CreateCard(page, 632, 220)
+    local sourceCard = CreateCard(page, 632, 176)
     sourceCard:SetPoint("TOPLEFT", 0, -72)
     self.requestSourceCard = sourceCard
 
-    local title = CreateLabel(sourceCard, "Request handling", 15, C.text)
+    local title = CreateLabel(sourceCard, "Requester rules", 15, C.text)
     title:SetPoint("TOPLEFT", 16, -14)
-    local sub = CreateLabel(sourceCard, "Accept whispers, tracked allied cooldown buffs, or both.", 10, C.muted)
+    local sub = CreateLabel(sourceCard, "Tracked allied cooldown buffs create PI Alert requests.", 10, C.muted)
     sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
     sub:SetPoint("RIGHT", -14, 0)
 
-    local howLabel = CreateLabel(sourceCard, "How to accept requests", 11, C.text)
-    howLabel:SetPoint("TOPLEFT", 16, -66)
-    local howDesc = CreateLabel(sourceCard, "Spell Cast follows the tracked buff and only shows while PI is ready.", 10, C.muted)
-    howDesc:SetPoint("TOPLEFT", 16, -84)
-    howDesc:SetWidth(300)
-
-    self.requestModeDropdown = self:CreateDropdown(sourceCard, 270, {
-        { value = "BOTH", label = "Whispers & Spell Cast" },
-        { value = "WHISPER", label = "Whispers" },
-        { value = "SPELL", label = "Spell Cast" },
-    }, function() return NS.db.requests.mode end, function(value)
-        NS.db.requests.mode = value
-        if NS.Detector then NS.Detector:OnSettingsChanged() end
-        UI:RefreshRequestsPage()
-    end)
-    self.requestModeDropdown:SetPoint("TOPLEFT", 346, -68)
-
     local whoLabel = CreateLabel(sourceCard, "Who can request?", 11, C.text)
-    whoLabel:SetPoint("TOPLEFT", 16, -120)
+    whoLabel:SetPoint("TOPLEFT", 16, -66)
     self.requesterModeDescription = CreateLabel(sourceCard, "", 10, C.muted)
-    self.requesterModeDescription:SetPoint("TOPLEFT", 16, -138)
+    self.requesterModeDescription:SetPoint("TOPLEFT", 16, -84)
     self.requesterModeDescription:SetWidth(300)
 
     self.requesterDropdown = self:CreateDropdown(sourceCard, 270, {
@@ -634,12 +560,12 @@ function UI:BuildRequestsPage()
         if NS.Detector then NS.Detector:OnSettingsChanged() end
         UI:RefreshRequestsPage()
     end)
-    self.requesterDropdown:SetPoint("TOPLEFT", 346, -122)
+    self.requesterDropdown:SetPoint("TOPLEFT", 346, -68)
 
     self.requesterFallbackLabel = CreateLabel(sourceCard, "Fallback if none available", 11, C.text)
-    self.requesterFallbackLabel:SetPoint("TOPLEFT", 16, -174)
+    self.requesterFallbackLabel:SetPoint("TOPLEFT", 16, -120)
     self.requesterFallbackDescription = CreateLabel(sourceCard, "Used only when none of the listed players are in your group.", 10, C.muted)
-    self.requesterFallbackDescription:SetPoint("TOPLEFT", 16, -192)
+    self.requesterFallbackDescription:SetPoint("TOPLEFT", 16, -138)
     self.requesterFallbackDescription:SetWidth(300)
 
     self.requesterFallbackDropdown = self:CreateDropdown(sourceCard, 270, {
@@ -650,40 +576,7 @@ function UI:BuildRequestsPage()
         NS.db.requesters.fallback = value
         if NS.Detector then NS.Detector:OnSettingsChanged() end
     end)
-    self.requesterFallbackDropdown:SetPoint("TOPLEFT", 346, -176)
-
-    local phraseCard = CreateCard(page, 632, 282)
-    phraseCard:SetPoint("TOPLEFT", sourceCard, "BOTTOMLEFT", 0, -14)
-    self.phraseCard = phraseCard
-
-    local ptitle = CreateLabel(phraseCard, "Whisper phrases", 15, C.text)
-    ptitle:SetPoint("TOPLEFT", 16, -14)
-    local pdesc = CreateLabel(phraseCard, "Contains matches whole words or phrases.", 10, C.muted)
-    pdesc:SetPoint("TOPLEFT", 16, -52)
-    pdesc:SetPoint("RIGHT", -14, 0)
-    pdesc:SetWordWrap(true)
-    self.phraseDescription = pdesc
-
-    local add = CreateButton(phraseCard, "+ Add phrase", 112, 30, true)
-    add:SetPoint("TOPRIGHT", -14, -14)
-    add:SetScript("OnClick", function() UI:ShowPhraseDialog() end)
-    self.phraseAddButton = add
-
-    local scroll = CreateFrame("ScrollFrame", nil, phraseCard)
-    scroll:SetPoint("TOPLEFT", 14, -78)
-    scroll:SetPoint("BOTTOMRIGHT", -14, 14)
-    scroll:EnableMouseWheel(true)
-    local child = CreateFrame("Frame", nil, scroll)
-    child:SetWidth(590)
-    child:SetHeight(1)
-    scroll:SetScrollChild(child)
-    scroll:SetScript("OnMouseWheel", function(self, delta)
-        local maxScroll = math.max(0, child:GetHeight() - self:GetHeight())
-        self:SetVerticalScroll(math.max(0, math.min(maxScroll, self:GetVerticalScroll() - delta * 44)))
-    end)
-    self.phraseScroll = scroll
-    self.phraseChild = child
-    self.phraseRows = {}
+    self.requesterFallbackDropdown:SetPoint("TOPLEFT", 346, -122)
 
     local playerCard = CreateCard(page, 632, 282)
     playerCard:SetPoint("TOPLEFT", sourceCard, "BOTTOMLEFT", 0, -14)
@@ -720,124 +613,10 @@ function UI:BuildRequestsPage()
     self.playerRows = {}
 end
 
-function UI:LayoutRequestDetailCards(whispersEnabled, specific)
-    local both = whispersEnabled and specific
-    local width = both and 309 or 632
-    local height = specific and 282 or 336
-
-    self.phraseCard:ClearAllPoints()
-    self.playerCard:ClearAllPoints()
-    self.phraseCard:SetShown(whispersEnabled)
-    self.playerCard:SetShown(specific)
-
-    if whispersEnabled then
-        self.phraseCard:SetSize(width, height)
-        self.phraseCard:SetPoint("TOPLEFT", self.requestSourceCard, "BOTTOMLEFT", 0, -14)
-    end
-    if specific then
-        self.playerCard:SetSize(width, height)
-        if both then
-            self.playerCard:SetPoint("TOPLEFT", self.phraseCard, "TOPRIGHT", 14, 0)
-        else
-            self.playerCard:SetPoint("TOPLEFT", self.requestSourceCard, "BOTTOMLEFT", 0, -14)
-        end
-    end
-
-    if whispersEnabled then
-        local rowWidth = width - 42
-        self.phraseListWidth = rowWidth
-        self.phraseChild:SetWidth(rowWidth)
-        for _, row in ipairs(self.phraseRows) do row:SetWidth(rowWidth) end
-        if self.phraseEmptyRow then self.phraseEmptyRow:SetWidth(rowWidth) end
-    end
-
-    if specific then
-        local rowWidth = width - 42
-        self.playerListWidth = rowWidth
-        self.playerListChild:SetWidth(rowWidth)
-        self.playerInput:SetWidth(math.max(120, width - 138))
-        for _, row in ipairs(self.playerRows) do row:SetWidth(rowWidth) end
-        if self.playerEmptyRow then self.playerEmptyRow:SetWidth(rowWidth) end
-    end
-end
-
-function UI:RefreshPhraseRows()
-    if not self.phraseChild then return end
-    for _, row in ipairs(self.phraseRows) do row:Hide() end
-
-    local rowWidth = self.phraseListWidth or 590
-    local phrases = NS.db.requests.phrases or {}
-    if #phrases == 0 then
-        if not self.phraseEmptyRow then
-            local row = CreateFrame("Frame", nil, self.phraseChild)
-            row:SetSize(rowWidth, 44)
-            local text = CreateLabel(row, "No phrases yet. Add one to accept whisper requests.", 12, C.muted)
-            text:SetPoint("LEFT", 12, 0)
-            row.emptyText = text
-            self.phraseEmptyRow = row
-        end
-        self.phraseEmptyRow:SetWidth(rowWidth)
-        self.phraseEmptyRow:ClearAllPoints()
-        self.phraseEmptyRow:SetPoint("TOPLEFT", 0, 0)
-        self.phraseEmptyRow:Show()
-        self.phraseChild:SetHeight(44)
-        return
-    elseif self.phraseEmptyRow then
-        self.phraseEmptyRow:Hide()
-    end
-
-    local y = 0
-    for i, phrase in ipairs(phrases) do
-        local row = self.phraseRows[i]
-        if not row then
-            row = CreateFrame("Frame", nil, self.phraseChild, "BackdropTemplate")
-            row:SetSize(rowWidth, 44)
-            SetBackdrop(row, C.panel2, C.borderSoft)
-
-            local text = CreateLabel(row, "", 12, C.text)
-            text:SetPoint("LEFT", 12, 0)
-            text:SetPoint("RIGHT", -158, 0)
-            row.text = text
-
-            row.mode = self:CreateDropdown(row, 96, {
-                { value = "CONTAINS", label = "Contains" },
-                { value = "EXACT", label = "Exact" },
-            }, function() return row.data and row.data.match or "CONTAINS" end, function(value)
-                if row.data then row.data.match = value end
-            end)
-            row.mode:SetPoint("RIGHT", -48, 0)
-
-            local remove = CreateButton(row, "x", 30, 28, false)
-            remove:SetPoint("RIGHT", -8, 0)
-            remove:SetScript("OnClick", function()
-                if not row.index then return end
-                table.remove(NS.db.requests.phrases, row.index)
-                UI:RefreshPhraseRows()
-            end)
-            row.remove = remove
-            self.phraseRows[i] = row
-        end
-
-        row:SetWidth(rowWidth)
-        row.data = phrase
-        row.index = i
-        row.text:SetText(phrase.text)
-        row.mode:Refresh()
-        row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", 0, -y)
-        row:Show()
-        y = y + 50
-    end
-    self.phraseChild:SetHeight(math.max(1, y))
-end
-
 function UI:RefreshRequestsPage()
-    if not self.requestModeDropdown or not self.requesterDropdown then return end
-    self.requestModeDropdown:Refresh()
+    if not self.requesterDropdown then return end
     self.requesterDropdown:Refresh()
 
-    local mode = NS.db.requests.mode or "BOTH"
-    local whispersEnabled = mode == "BOTH" or mode == "WHISPER"
     local requesterMode = NS.db.requesters.mode or "EVERYONE"
     local specific = requesterMode == "SPECIFIC"
 
@@ -852,13 +631,18 @@ function UI:RefreshRequestsPage()
     self.requesterFallbackLabel:SetShown(specific)
     self.requesterFallbackDescription:SetShown(specific)
     self.requesterFallbackDropdown:SetShown(specific)
-    self.requestSourceCard:SetHeight(specific and 220 or 166)
-    self:LayoutRequestDetailCards(whispersEnabled, specific)
-
-    if whispersEnabled then
-        self:RefreshPhraseRows()
-    end
+    self.requestSourceCard:SetHeight(specific and 176 or 122)
+    self.playerCard:ClearAllPoints()
+    self.playerCard:SetShown(specific)
     if specific then
+        self.playerCard:SetSize(632, 282)
+        self.playerCard:SetPoint("TOPLEFT", self.requestSourceCard, "BOTTOMLEFT", 0, -14)
+        local rowWidth = 590
+        self.playerListWidth = rowWidth
+        self.playerListChild:SetWidth(rowWidth)
+        self.playerInput:SetWidth(494)
+        for _, row in ipairs(self.playerRows) do row:SetWidth(rowWidth) end
+        if self.playerEmptyRow then self.playerEmptyRow:SetWidth(rowWidth) end
         self.requesterFallbackDropdown:Refresh()
         self:RefreshPlayerRows()
     end
@@ -1856,7 +1640,7 @@ function UI:BuildAlertsPage()
     local page = CreateFrame("Frame", nil, self.content)
     page:SetAllPoints()
     self.pages.Alerts = page
-    CreatePageHeading(page, "Alerts", "Configure raidframes, the movable aura icon, and whisper-only sound behavior.")
+    CreatePageHeading(page, "Alerts", "Configure raidframes and the movable aura icon for tracked cooldown alerts.")
 
     self.alertControls = {}
 
@@ -1974,13 +1758,6 @@ function UI:BuildAlertsPage()
     end)
     self.spellAlertTimingDropdown:SetPoint("TOPLEFT", 16, -424)
 
-    local raidHelp = CreateLabel(raidCard, "Alerts triggered by whispers fall back to the PI icon.", 10, C.muted)
-    raidHelp:SetPoint("TOPLEFT", 16, -467)
-    raidHelp:SetPoint("RIGHT", -130, 0)
-    raidHelp:SetHeight(32)
-    raidHelp:SetJustifyV("TOP")
-    raidHelp:SetWordWrap(true)
-
     local test = CreateButton(raidCard, "Test alert", 100, 30, false)
     test:SetPoint("BOTTOMRIGHT", -16, 14)
     test:SetScript("OnClick", function() if NS.RequestManager then NS.RequestManager:TestRequest() end end)
@@ -2027,45 +1804,6 @@ function UI:BuildAlertsPage()
         if NS.FrameAlerts then NS.FrameAlerts:ResetAuraIconPosition() end
     end)
 
-    -- Whisper settings --------------------------------------------------------
-    local whisperCard = CreateCard(page, 236, 274)
-    whisperCard:SetPoint("TOPLEFT", auraCard, "BOTTOMLEFT", 0, -12)
-    self.whisperSettingsCard = whisperCard
-    local whisperTitle = CreateLabel(whisperCard, "Whisper settings", 15, C.text)
-    whisperTitle:SetPoint("TOPLEFT", 16, -14)
-    local whisperDesc = CreateLabel(whisperCard, "Sound and PI cooldown behavior for accepted whispers.", 10, C.muted)
-    whisperDesc:SetPoint("TOPLEFT", whisperTitle, "BOTTOMLEFT", 0, -4)
-    whisperDesc:SetPoint("RIGHT", -16, 0)
-    whisperDesc:SetWordWrap(true)
-
-    self.alertControls.sound = CreateCheckbox(whisperCard, "Enable whisper sound",
-        function() return NS.db.alerts.sound end,
-        function(value) setVisualOption("sound", value, false) end)
-    self.alertControls.sound:SetPoint("TOPLEFT", 16, -58)
-    self.alertControls.sound:SetPoint("RIGHT", -16, 0)
-
-    local soundLabel = CreateLabel(whisperCard, "Sound file", 10, C.muted)
-    soundLabel:SetPoint("TOPLEFT", 16, -92)
-    self.soundPicker = self:CreateSoundPicker(whisperCard, 204)
-    self.soundPicker:SetPoint("TOPLEFT", 16, -108)
-
-    self.whisperDurationField = self:CreateCompactNumberField(whisperCard, "Alert duration (sec)",
-        function() return NS.db.requests.duration end,
-        function(v) NS.db.requests.duration = v end, 1, 30, 112, 0)
-    self.whisperDurationField:SetPoint("TOPLEFT", 16, -150)
-
-    self.alertControls.whisperOnPICooldown = CreateCheckbox(whisperCard, "Alert during PI cooldown",
-        function() return NS.db.alerts.whisperOnPICooldown == true end,
-        function(value) NS.db.alerts.whisperOnPICooldown = value and true or false end)
-    self.alertControls.whisperOnPICooldown:SetPoint("TOPLEFT", 16, -202)
-    self.alertControls.whisperOnPICooldown:SetPoint("RIGHT", -16, 0)
-
-    local whisperCooldownHelp = CreateLabel(whisperCard, "Accept matching whispers and trigger their visual and sound alerts while PI is unavailable.", 10, C.muted)
-    whisperCooldownHelp:SetPoint("TOPLEFT", 16, -232)
-    whisperCooldownHelp:SetPoint("RIGHT", -16, 0)
-    whisperCooldownHelp:SetHeight(38)
-    whisperCooldownHelp:SetJustifyV("TOP")
-    whisperCooldownHelp:SetWordWrap(true)
 end
 
 function UI:RefreshGlowSettings()
@@ -2083,127 +1821,9 @@ function UI:RefreshGlowSettings()
     if self.glowAutoScaleField then self.glowAutoScaleField:SetShown(autocast); self.glowAutoScaleField:Refresh() end
 end
 
-function UI:CreateSoundPicker(parent, width)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    button:SetSize(width or 350, 34)
-    SetBackdrop(button, {0.025, 0.037, 0.050, 1}, C.border)
-
-    local text = CreateLabel(button, "", 12, C.text)
-    text:SetPoint("LEFT", 10, 0)
-    text:SetPoint("RIGHT", -62, 0)
-    button.valueText = text
-
-    local preview = CreateButton(button, "", 30, 26, false)
-    StyleSoundPreviewButton(preview)
-    preview:SetPoint("RIGHT", -6, 0)
-    preview:SetScript("OnClick", function()
-        if NS.Media then NS.Media:Play(NS.db.alerts.soundKey) end
-    end)
-    button.preview = preview
-
-    function button:Refresh()
-        text:SetText(NS.Media and NS.Media:GetSoundDisplayName(NS.db.alerts.soundKey) or "Blizzard - Raid Warning")
-    end
-
-    button:SetScript("OnClick", function(self)
-        if self._piPopup and self._piPopup:IsShown() then
-            self._piPopup:Hide()
-            return
-        end
-        UI:ShowSoundPopup(self)
-    end)
-    button:Refresh()
-    return button
-end
-
-function UI:ShowSoundPopup(anchor)
-    self:ClosePopups()
-    local popup = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-    popup:SetSize(420, 390)
-    popup:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
-    SetBackdrop(popup, {0.025, 0.037, 0.050, 1}, C.border)
-    anchor._piPopup = popup
-    self:RegisterPopup(popup, anchor)
-
-    local search = CreateEditBox(popup, 392, 34, "Search sounds...")
-    search:SetPoint("TOPLEFT", 14, -14)
-
-    popup.rows = {}
-    popup.offset = 1
-    popup.filtered = {}
-    local visibleRows = 9
-    for i = 1, visibleRows do
-        local row = CreateFrame("Button", nil, popup)
-        row:SetPoint("TOPLEFT", 14, -58 - (i - 1) * 33)
-        row:SetPoint("TOPRIGHT", -14, -58 - (i - 1) * 33)
-        row:SetHeight(31)
-        local bg = row:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints()
-        bg:SetColorTexture(1, 1, 1, 0)
-        row.bg = bg
-        local name = CreateLabel(row, "", 11, C.text)
-        name:SetPoint("LEFT", 8, 0)
-        name:SetPoint("RIGHT", -44, 0)
-        row.name = name
-        local play = CreateButton(row, "", 28, 24, false)
-        StyleSoundPreviewButton(play)
-        play:SetPoint("RIGHT", -3, 0)
-        row.play = play
-        row:SetScript("OnEnter", function() bg:SetColorTexture(1, 1, 1, 0.05) end)
-        row:SetScript("OnLeave", function() bg:SetColorTexture(1, 1, 1, 0) end)
-        popup.rows[i] = row
-    end
-
-    local footer = CreateLabel(popup, "", 10, C.muted)
-    footer:SetPoint("BOTTOMLEFT", 14, 12)
-    popup.footer = footer
-
-    local function refresh()
-        popup.filtered = NS.Media and NS.Media:GetSounds(search:GetText()) or {}
-        local maxOffset = math.max(1, #popup.filtered - visibleRows + 1)
-        popup.offset = math.max(1, math.min(maxOffset, popup.offset or 1))
-        for i, row in ipairs(popup.rows) do
-            local entry = popup.filtered[popup.offset + i - 1]
-            row.entry = entry
-            if entry then
-                row:Show()
-                row.name:SetText(entry.name)
-                row.name:SetTextColor(unpack(entry.key == NS.db.alerts.soundKey and C.accent or C.text))
-                row:SetScript("OnClick", function()
-                    NS.db.alerts.soundKey = entry.key
-                    anchor:Refresh()
-                    popup:Hide()
-                end)
-                row.play:SetScript("OnClick", function()
-                    if NS.Media then NS.Media:Play(entry.key) end
-                end)
-            else
-                row:Hide()
-            end
-        end
-        if #popup.filtered == 0 then
-            footer:SetText("No sounds found")
-        else
-            local last = math.min(#popup.filtered, popup.offset + visibleRows - 1)
-            footer:SetText(string.format("%d-%d of %d  |  Mouse wheel to scroll", popup.offset, last, #popup.filtered))
-        end
-    end
-
-    popup:EnableMouseWheel(true)
-    popup:SetScript("OnMouseWheel", function(_, delta)
-        local maxOffset = math.max(1, #popup.filtered - visibleRows + 1)
-        popup.offset = math.max(1, math.min(maxOffset, popup.offset - delta * 3))
-        refresh()
-    end)
-    search:SetChangeHandler(function() popup.offset = 1; refresh() end)
-    refresh()
-end
-
 function UI:RefreshAlertsPage()
     if not self.alertControls then return end
     for _, control in pairs(self.alertControls) do control:Refresh() end
-    if self.soundPicker then self.soundPicker:Refresh() end
-    if self.whisperDurationField then self.whisperDurationField:Refresh() end
     if self.spellAlertTimingDropdown then self.spellAlertTimingDropdown:Refresh() end
     if self.frameIconTypeDropdown then self.frameIconTypeDropdown:Refresh() end
     if self.auraIconSizeField then self.auraIconSizeField:Refresh() end
@@ -2242,48 +1862,6 @@ function UI:ShowModal(titleText, width, height)
     overlay.panel = panel
     overlay:SetScript("OnHide", function() if UI.modalOverlay == overlay then UI.modalOverlay = nil end end)
     return overlay, panel
-end
-
-function UI:ShowPhraseDialog()
-    local overlay, panel = self:ShowModal("Add whisper phrase", 440, 230)
-
-    local label = CreateLabel(panel, "Phrase", 11, C.muted)
-    label:SetPoint("TOPLEFT", 18, -58)
-    local modeLabel = CreateLabel(panel, "Match", 11, C.muted)
-    modeLabel:SetPoint("TOPLEFT", 288, -58)
-
-    -- Explicit shared Y coordinate keeps EditBox and dropdown pixel-aligned.
-    local input = CreateEditBox(panel, 258, 34, "e.g. PI")
-    input:SetPoint("TOPLEFT", 18, -82)
-
-    local mode = "CONTAINS"
-    local dropdown = self:CreateDropdown(panel, 134, {
-        { value = "CONTAINS", label = "Contains" },
-        { value = "EXACT", label = "Exact" },
-    }, function() return mode end, function(value) mode = value end)
-    dropdown:SetPoint("TOPLEFT", 288, -82)
-
-    local cancel = CreateButton(panel, "Cancel", 88, 32, false)
-    cancel:SetPoint("BOTTOMRIGHT", -18, 16)
-    cancel:SetScript("OnClick", function() overlay:Hide() end)
-    local add = CreateButton(panel, "Add phrase", 100, 32, true)
-    add:SetPoint("RIGHT", cancel, "LEFT", -8, 0)
-
-    local function commit()
-        local text = strtrim(input:GetText() or "")
-        if text == "" then return end
-        for _, phrase in ipairs(NS.db.requests.phrases) do
-            if (phrase.text or ""):lower() == text:lower() and phrase.match == mode then
-                overlay:Hide(); return
-            end
-        end
-        NS.db.requests.phrases[#NS.db.requests.phrases + 1] = { text = text, match = mode }
-        overlay:Hide()
-        UI:RefreshPhraseRows()
-    end
-    add:SetScript("OnClick", commit)
-    input:SetScript("OnEnterPressed", commit)
-    C_Timer.After(0, function() input:SetFocus() end)
 end
 
 function UI:ShowPIMacroTargetDialog()
@@ -2363,7 +1941,7 @@ end
 
 function UI:ShowResetConfirmation()
     local overlay, panel = self:ShowModal("Reset PI Alert?", 400, 190)
-    local text = CreateLabel(panel, "This restores every setting, phrase, player, spell and alert option to its default.", 12, C.muted)
+    local text = CreateLabel(panel, "This restores every requester, spell, alert and activation option to its default.", 12, C.muted)
     text:SetPoint("TOPLEFT", 18, -58)
     text:SetPoint("RIGHT", -18, 0)
     text:SetWordWrap(true)
