@@ -2,16 +2,39 @@
 
 ## 1.2.0
 
+PI Alert now focuses entirely on alerts triggered by tracked allied cooldowns,
+with finer control over when the addon is active.
+
+### New
+
+- **Activation settings.** Choose whether PI Alert is active for Healer
+  (Holy/Discipline) and/or DPS (Shadow) priest specializations.
+- **Content-type controls.** Enable PI Alert separately in open world content,
+  dungeons, raids, PvP, and Delves & scenarios. Dungeon, raid, and PvP
+  categories can be expanded to select their relevant difficulties or modes.
+- **Clearer grouped selections.** Spell and content lists now use expandable
+  groups with indented child options, making large lists easier to scan.
+- **Options-window branding.** The settings window now shows the PI Alert logo
+  and the installed addon version.
+
 ### Changed
 
 - PI Alert now uses tracked allied cooldown buffs exclusively. The Requests page
-  focuses on requester rules, and the Alerts page contains only the visuals used
-  for tracked cooldown alerts.
+  focuses on requester rules, while the Alerts page contains only the visuals
+  used for tracked cooldown alerts.
+- Existing saved variables are migrated automatically, including cleanup of the
+  retired chat-request and request-sound settings.
+
+### Fixed
+
+- **AutoCast and Button Glow now animate for real alerts.** These glow styles
+  now use the same native animation path as the Test alert button; AutoCast also
+  respects its configured scale.
 
 ### Removed
 
 - Removed chat-based request handling, request-source selection, phrase rules,
-  request sounds, and related saved settings.
+  PI Alert request sounds, and related saved settings.
 
 ## 1.1.0
 
