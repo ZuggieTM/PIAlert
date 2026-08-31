@@ -18,7 +18,7 @@ local C = {
 }
 
 local SOUND_PREVIEW_ICON = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\sound-preview.tga"
-local ADDON_LOGO = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\pialert-icon.tga"
+local ADDON_LOGO = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\pialert-icon-feathered.tga"
 
 local function GetAddonVersion()
     local version
@@ -405,9 +405,9 @@ function UI:CreateMainFrame()
     logo:SetPoint("LEFT", 18, 0)
     logo:SetTexture(ADDON_LOGO)
     logo:SetTexCoord(0, 1, 0, 1)
-    -- The source mark has a black background. Additive blending lets that
-    -- background disappear into the header while preserving the purple glow.
-    logo:SetBlendMode("ADD")
+    -- The alpha-feathered mark has no hard rectangular edge, so it can blend
+    -- naturally with the header without a visible texture square.
+    logo:SetBlendMode("BLEND")
 
     local title = CreateLabel(top, "PI Alert", 20, C.text)
     title:SetPoint("LEFT", logo, "RIGHT", 10, 7)
