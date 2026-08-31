@@ -1058,7 +1058,9 @@ function UI:BuildActivationPage()
 
         local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
         box:SetSize(18, 18)
-        box:SetPoint("LEFT", 6, 0)
+        -- Child content types sit beneath their parent category rather than
+        -- sharing its checkbox alignment.
+        box:SetPoint("LEFT", 26, 0)
         SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
         row.box = box
         local check = box:CreateTexture(nil, "OVERLAY")
@@ -1357,7 +1359,9 @@ function UI:BuildSpellsPage()
 
         local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
         box:SetSize(18, 18)
-        box:SetPoint("LEFT", 6, 0)
+        -- Spell rows are children of their class header, so indent the full
+        -- checkbox/icon/label stack beneath that header.
+        box:SetPoint("LEFT", 26, 0)
         SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
         row.box = box
         local check = box:CreateTexture(nil, "OVERLAY")
