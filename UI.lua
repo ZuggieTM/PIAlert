@@ -74,32 +74,21 @@ local function CreateButton(parent, text, width, height, accent)
     return btn
 end
 
-local function CreateEditBox(parent, width, height, placeholder, multiline)
+local function CreateEditBox(parent, width, height, placeholder)
     local box = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
     box:SetSize(width or 220, height or 34)
     SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
     box:SetAutoFocus(false)
     box:SetFontObject(ChatFontNormal)
     box:SetTextColor(unpack(C.text))
-    box:SetTextInsets(10, 10, multiline and 8 or 0, multiline and 8 or 0)
-    box:SetMultiLine(multiline == true)
-    if multiline then
-        box:SetJustifyH("LEFT")
-        box:SetJustifyV("TOP")
-    end
+    box:SetTextInsets(10, 10, 0, 0)
     box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     box:SetScript("OnEditFocusGained", function(self) self:SetBackdropBorderColor(unpack(C.accentDim)) end)
     box:SetScript("OnEditFocusLost", function(self) self:SetBackdropBorderColor(unpack(C.border)) end)
 
     local hint = CreateLabel(box, placeholder or "", 12, C.muted)
-    if multiline then
-        hint:SetPoint("TOPLEFT", 10, -8)
-        hint:SetPoint("RIGHT", -10, 0)
-        hint:SetJustifyV("TOP")
-    else
-        hint:SetPoint("LEFT", 10, 0)
-        hint:SetPoint("RIGHT", -10, 0)
-    end
+    hint:SetPoint("LEFT", 10, 0)
+    hint:SetPoint("RIGHT", -10, 0)
     hint:SetAlpha(0.65)
     box.placeholder = hint
 
@@ -113,6 +102,107 @@ local function CreateEditBox(parent, width, height, placeholder, multiline)
         oldChanged = fn
     end
 
+    return box
+end
+
+local function CreateScrollingEditBox(parent, width, height, placeholder)
+    local container = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    container:SetSize(width, height)
+    SetBackdrop(container, {0.025, 0.037, 0.050, 1}, C.border)
+
+    local scroll = CreateFrame("ScrollFrame", nil, container)
+    scroll:SetPoint("TOPLEFT", 8, -8)
+    scroll:SetPoint("BOTTOMRIGHT", -20, 8)
+    scroll:EnableMouseWheel(true)
+
+    local box = CreateFrame("EditBox", nil, scroll)
+    box:SetMultiLine(true)
+    box:SetAutoFocus(false)
+    box:SetFontObject(ChatFontNormal)
+    box:SetTextColor(unpack(C.text))
+    box:SetTextInsets(2, 2, 0, 0)
+    box:SetJustifyH("LEFT")
+    box:SetJustifyV("TOP")
+    box:SetWidth(width - 28)
+    box:SetHeight(height - 16)
+    scroll:SetScrollChild(box)
+
+    local hint = CreateLabel(container, placeholder or "", 12, C.muted)
+    hint:SetPoint("TOPLEFT", 10, -10)
+    hint:SetPoint("RIGHT", -22, 0)
+    hint:SetJustifyV("TOP")
+    hint:SetAlpha(0.65)
+
+    local scrollbar = CreateFrame("Slider", nil, container, "BackdropTemplate")
+    scrollbar:SetPoint("TOPRIGHT", -6, -8)
+    scrollbar:SetPoint("BOTTOMRIGHT", -6, 8)
+    scrollbar:SetWidth(7)
+    scrollbar:SetOrientation("VERTICAL")
+    SetBackdrop(scrollbar, C.panel2, C.borderSoft)
+    local thumb = scrollbar:CreateTexture(nil, "OVERLAY")
+    thumb:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.9)
+    thumb:SetSize(7, 20)
+    scrollbar:SetThumbTexture(thumb)
+    scrollbar:Hide()
+
+    local changingScroll = false
+    local lastMaxScroll = 0
+    local function RefreshScroll()
+        local viewHeight = scroll:GetHeight()
+        local contentHeight = math.max(viewHeight, math.ceil(box:GetStringHeight()) + 4)
+        box:SetHeight(contentHeight)
+
+        local maxScroll = math.max(0, contentHeight - viewHeight)
+        scrollbar:SetMinMaxValues(0, maxScroll)
+        if maxScroll > 0 then
+            scrollbar:Show()
+            if scroll:GetVerticalScroll() > maxScroll then scroll:SetVerticalScroll(maxScroll) end
+        else
+            scroll:SetVerticalScroll(0)
+            scrollbar:Hide()
+        end
+        return maxScroll
+    end
+
+    scrollbar:SetScript("OnValueChanged", function(_, value)
+        if changingScroll then return end
+        scroll:SetVerticalScroll(value)
+    end)
+    scroll:SetScript("OnVerticalScroll", function(_, offset)
+        changingScroll = true
+        scrollbar:SetValue(offset)
+        changingScroll = false
+    end)
+    local function ScrollByWheel(delta)
+        local _, maxScroll = scrollbar:GetMinMaxValues()
+        scroll:SetVerticalScroll(math.max(0, math.min(maxScroll, scroll:GetVerticalScroll() - delta * 24)))
+    end
+    scroll:SetScript("OnMouseWheel", function(_, delta) ScrollByWheel(delta) end)
+    scroll:SetScript("OnSizeChanged", function()
+        lastMaxScroll = RefreshScroll()
+    end)
+
+    box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEditFocusGained", function() container:SetBackdropBorderColor(unpack(C.accentDim)) end)
+    box:SetScript("OnEditFocusLost", function() container:SetBackdropBorderColor(unpack(C.border)) end)
+    box:EnableMouseWheel(true)
+    box:SetScript("OnMouseWheel", function(_, delta) ScrollByWheel(delta) end)
+
+    local oldChanged
+    box:SetScript("OnTextChanged", function(self, userInput)
+        local wasAtBottom = scroll:GetVerticalScroll() >= lastMaxScroll - 1
+        hint:SetShown(self:GetText() == "")
+        lastMaxScroll = RefreshScroll()
+        if userInput and wasAtBottom then scroll:SetVerticalScroll(lastMaxScroll) end
+        if oldChanged then oldChanged(self, userInput) end
+    end)
+
+    function box:SetChangeHandler(fn)
+        oldChanged = fn
+    end
+
+    box.container = container
+    lastMaxScroll = RefreshScroll()
     return box
 end
 
@@ -541,8 +631,8 @@ function UI:BuildMacrosPage()
     extraHelp:SetPoint("TOPLEFT", extraTitle, "BOTTOMLEFT", 0, -4)
     extraHelp:SetPoint("RIGHT", -16, 0)
 
-    local extraInput = CreateEditBox(card, 600, 78, "/use 13\n/use 14", true)
-    extraInput:SetPoint("TOPLEFT", 16, -294)
+    local extraInput = CreateScrollingEditBox(card, 600, 78, "/use 13\n/use 14")
+    extraInput.container:SetPoint("TOPLEFT", 16, -294)
     extraInput:SetText(NS:GetPIMacroExtraText())
     self.macroExtraInput = extraInput
 
