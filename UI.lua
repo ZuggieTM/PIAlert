@@ -147,9 +147,22 @@ local function CreateScrollingEditBox(parent, width, height, placeholder)
 
     local changingScroll = false
     local lastMaxScroll = 0
+    local _, fontHeight = ChatFontNormal:GetFont()
+    fontHeight = tonumber(fontHeight) or 14
+
+    local function GetContentHeight()
+        local lineCount = 0
+        for line in ((box:GetText() or "") .. "\n"):gmatch("(.-)\n") do
+            -- Macro lines are usually short. Account for wrapped long lines as
+            -- well, without relying on FontString-only measurement methods.
+            lineCount = lineCount + math.max(1, math.ceil(#line / 76))
+        end
+        return lineCount * fontHeight + 4
+    end
+
     local function RefreshScroll()
-        local viewHeight = scroll:GetHeight()
-        local contentHeight = math.max(viewHeight, math.ceil(box:GetStringHeight()) + 4)
+        local viewHeight = math.max(1, scroll:GetHeight())
+        local contentHeight = math.max(viewHeight, GetContentHeight())
         box:SetHeight(contentHeight)
 
         local maxScroll = math.max(0, contentHeight - viewHeight)
