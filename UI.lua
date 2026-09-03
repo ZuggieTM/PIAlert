@@ -74,21 +74,32 @@ local function CreateButton(parent, text, width, height, accent)
     return btn
 end
 
-local function CreateEditBox(parent, width, height, placeholder)
+local function CreateEditBox(parent, width, height, placeholder, multiline)
     local box = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
     box:SetSize(width or 220, height or 34)
     SetBackdrop(box, {0.025, 0.037, 0.050, 1}, C.border)
     box:SetAutoFocus(false)
     box:SetFontObject(ChatFontNormal)
     box:SetTextColor(unpack(C.text))
-    box:SetTextInsets(10, 10, 0, 0)
+    box:SetTextInsets(10, 10, multiline and 8 or 0, multiline and 8 or 0)
+    box:SetMultiLine(multiline == true)
+    if multiline then
+        box:SetJustifyH("LEFT")
+        box:SetJustifyV("TOP")
+    end
     box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     box:SetScript("OnEditFocusGained", function(self) self:SetBackdropBorderColor(unpack(C.accentDim)) end)
     box:SetScript("OnEditFocusLost", function(self) self:SetBackdropBorderColor(unpack(C.border)) end)
 
     local hint = CreateLabel(box, placeholder or "", 12, C.muted)
-    hint:SetPoint("LEFT", 10, 0)
-    hint:SetPoint("RIGHT", -10, 0)
+    if multiline then
+        hint:SetPoint("TOPLEFT", 10, -8)
+        hint:SetPoint("RIGHT", -10, 0)
+        hint:SetJustifyV("TOP")
+    else
+        hint:SetPoint("LEFT", 10, 0)
+        hint:SetPoint("RIGHT", -10, 0)
+    end
     hint:SetAlpha(0.65)
     box.placeholder = hint
 
@@ -484,7 +495,7 @@ function UI:BuildMacrosPage()
     self.pages.Macros = page
     CreatePageHeading(page, "Macros", "Create a General Power Infusion macro with the targeting behavior you prefer.")
 
-    local card = CreateCard(page, 632, 254)
+    local card = CreateCard(page, 632, 414)
     card:SetPoint("TOPLEFT", 0, -72)
 
     local title = CreateLabel(card, "Power Infusion macros", 15, C.text)
@@ -523,6 +534,30 @@ function UI:BuildMacrosPage()
         186,
         function() NS:SetPIMacroMode("MOUSEOVER") end
     )
+
+    local extraTitle = CreateLabel(card, "Additional macro text", 11, C.text)
+    extraTitle:SetPoint("TOPLEFT", 16, -254)
+    local extraHelp = CreateLabel(card, "Optional commands appended after Power Infusion, such as /use 13. Saved automatically; click any Create macro button to update the macro.", 10, C.muted)
+    extraHelp:SetPoint("TOPLEFT", extraTitle, "BOTTOMLEFT", 0, -4)
+    extraHelp:SetPoint("RIGHT", -16, 0)
+
+    local extraInput = CreateEditBox(card, 600, 78, "/use 13\n/use 14", true)
+    extraInput:SetPoint("TOPLEFT", 16, -294)
+    extraInput:SetText(NS:GetPIMacroExtraText())
+    self.macroExtraInput = extraInput
+
+    local lengthLabel = CreateLabel(card, "", 10, C.muted)
+    lengthLabel:SetPoint("TOPRIGHT", -16, -382)
+    local function UpdateExtraText()
+        NS:SetPIMacroExtraText(extraInput:GetText())
+        local length = #NS:BuildPIMacroBody()
+        lengthLabel:SetText(length .. " / 255 characters")
+        lengthLabel:SetTextColor(unpack(length > 255 and C.danger or C.muted))
+    end
+    extraInput:SetChangeHandler(function(_, userInput)
+        if userInput then UpdateExtraText() end
+    end)
+    UpdateExtraText()
 end
 
 -- -----------------------------------------------------------------------------

@@ -51,6 +51,7 @@ end
 
 local PI_MACRO_NAME = "PI Alert"
 local PI_MACRO_ICON = 134400 -- INV_Misc_QuestionMark; #showtooltip supplies the live spell icon.
+local MAX_MACRO_BODY_LENGTH = 255
 
 function NS:NormalizeMacroTarget(target)
     if type(target) ~= "string" then return nil end
@@ -82,6 +83,22 @@ function NS:GetPIMacroMode()
     return "MOUSEOVER"
 end
 
+function NS:NormalizePIMacroExtraText(text)
+    if type(text) ~= "string" then return "" end
+    text = text:gsub("\r\n?", "\n")
+    return text:match("^%s*(.-)%s*$") or ""
+end
+
+function NS:GetPIMacroExtraText()
+    return self:NormalizePIMacroExtraText(self.db and self.db.macro and self.db.macro.extraText)
+end
+
+function NS:SetPIMacroExtraText(text)
+    if not self.db then return end
+    self.db.macro = self.db.macro or {}
+    self.db.macro.extraText = self:NormalizePIMacroExtraText(text)
+end
+
 function NS:BuildPIMacroBody()
     local mode = self:GetPIMacroMode()
     local target = mode == "PLAYER" and self:GetPIMacroTarget() or nil
@@ -91,8 +108,11 @@ function NS:BuildPIMacroBody()
     elseif mode == "FOCUS" then
         targetClause = "[@focus,help,exists,nodead]"
     end
-    return "#showtooltip Power Infusion\n/cast " .. targetClause
+    local body = "#showtooltip Power Infusion\n/cast " .. targetClause
         .. "[@mouseover,help,exists,nodead] Power Infusion"
+    local extraText = self:GetPIMacroExtraText()
+    if extraText ~= "" then body = body .. "\n" .. extraText end
+    return body
 end
 
 function NS:FindGeneralPIMacro()
@@ -108,6 +128,13 @@ end
 function NS:CreateOrUpdatePIMacro()
     if type(CreateMacro) ~= "function" or type(EditMacro) ~= "function" then
         self:Print("The macro API is currently unavailable.")
+        return false
+    end
+
+    local macroBody = self:BuildPIMacroBody()
+    if #macroBody > MAX_MACRO_BODY_LENGTH then
+        self:Print("The PI Alert macro is " .. #macroBody .. "/" .. MAX_MACRO_BODY_LENGTH
+            .. " characters. Shorten the additional macro text and try again.")
         return false
     end
 
@@ -130,9 +157,9 @@ function NS:CreateOrUpdatePIMacro()
     local existingIndex = self:FindGeneralPIMacro()
     local ok, macroIndex
     if existingIndex then
-        ok, macroIndex = pcall(EditMacro, existingIndex, PI_MACRO_NAME, PI_MACRO_ICON, self:BuildPIMacroBody())
+        ok, macroIndex = pcall(EditMacro, existingIndex, PI_MACRO_NAME, PI_MACRO_ICON, macroBody)
     else
-        ok, macroIndex = pcall(CreateMacro, PI_MACRO_NAME, PI_MACRO_ICON, self:BuildPIMacroBody(), false)
+        ok, macroIndex = pcall(CreateMacro, PI_MACRO_NAME, PI_MACRO_ICON, macroBody, false)
     end
 
     if not ok or not macroIndex then
@@ -563,6 +590,13 @@ function NS:InitializeDatabase()
                 PIAlertDB.alerts.whisperOnPICooldown = nil
             end
             PIAlertDB.settingsRevision = 15
+        end
+        if (tonumber(PIAlertDB.settingsRevision) or 1) < 16 then
+            PIAlertDB.macro = PIAlertDB.macro or {}
+            if type(PIAlertDB.macro.extraText) ~= "string" then
+                PIAlertDB.macro.extraText = ""
+            end
+            PIAlertDB.settingsRevision = 16
         end
     end
     self.db = PIAlertDB

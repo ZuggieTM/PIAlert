@@ -16,6 +16,8 @@ with finer control over when the addon is active.
   groups with indented child options, making large lists easier to scan.
 - **Options-window branding.** The settings window now shows the PI Alert logo
   and the installed addon version.
+- **Additional macro commands.** Add your own macro lines, such as `/use 13`,
+  to append them after Power Infusion in every generated PI Alert macro.
 
 ### Changed
 
