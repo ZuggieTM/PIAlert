@@ -129,7 +129,6 @@ local function CreateScrollingEditBox(parent, width, height, placeholder)
     box:SetTextInsets(2, 2, 0, 0)
     box:SetJustifyH("LEFT")
     box:SetJustifyV("TOP")
-    if type(box.SetBlinkSpeed) == "function" then box:SetBlinkSpeed(0.5) end
     box:SetWidth(width - 28)
     box:SetHeight(height - 16)
     scroll:SetScrollChild(box)
@@ -156,6 +155,27 @@ local function CreateScrollingEditBox(parent, width, height, placeholder)
     local lastMaxScroll = 0
     local _, fontHeight = ChatFontNormal:GetFont()
     fontHeight = tonumber(fontHeight) or 14
+
+    local caret = box:CreateTexture(nil, "OVERLAY")
+    caret:SetColorTexture(C.text[1], C.text[2], C.text[3], 1)
+    caret:SetSize(1, fontHeight)
+    caret:Hide()
+
+    local caretElapsed = 0
+    local function StopCaretBlink()
+        container:SetScript("OnUpdate", nil)
+        caret:Hide()
+    end
+
+    local function StartCaretBlink()
+        caretElapsed = 0
+        caret:SetAlpha(1)
+        caret:Show()
+        container:SetScript("OnUpdate", function(_, elapsed)
+            caretElapsed = (caretElapsed + elapsed) % 1
+            caret:SetAlpha(caretElapsed < 0.5 and 1 or 0)
+        end)
+    end
 
     local function GetContentHeight()
         local lineCount = 0
@@ -202,9 +222,30 @@ local function CreateScrollingEditBox(parent, width, height, placeholder)
         lastMaxScroll = RefreshScroll()
     end)
 
+    box:SetScript("OnCursorChanged", function(_, x, y, _, cursorHeight)
+        caret:ClearAllPoints()
+        caret:SetPoint("TOPLEFT", box, "TOPLEFT", (x or 0) + 2, y or 0)
+        caret:SetSize(1, cursorHeight or fontHeight)
+
+        local cursorY = -(y or 0)
+        local offset = scroll:GetVerticalScroll()
+        if cursorY < offset then
+            scroll:SetVerticalScroll(cursorY)
+        elseif cursorY + (cursorHeight or fontHeight) > offset + scroll:GetHeight() then
+            scroll:SetVerticalScroll(cursorY + (cursorHeight or fontHeight) - scroll:GetHeight())
+        end
+
+        if box:HasFocus() then StartCaretBlink() end
+    end)
     box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-    box:SetScript("OnEditFocusGained", function() container:SetBackdropBorderColor(unpack(C.accentDim)) end)
-    box:SetScript("OnEditFocusLost", function() container:SetBackdropBorderColor(unpack(C.border)) end)
+    box:SetScript("OnEditFocusGained", function()
+        container:SetBackdropBorderColor(unpack(C.accentDim))
+        StartCaretBlink()
+    end)
+    box:SetScript("OnEditFocusLost", function()
+        container:SetBackdropBorderColor(unpack(C.border))
+        StopCaretBlink()
+    end)
     box:EnableMouseWheel(true)
     box:SetScript("OnMouseWheel", function(_, delta) ScrollByWheel(delta) end)
 
