@@ -698,7 +698,7 @@ function UI:BuildMacrosPage()
 
     local extraTitle = CreateLabel(card, "Additional macro text", 11, C.text)
     extraTitle:SetPoint("TOPLEFT", 16, -254)
-    local extraHelp = CreateLabel(card, "Saved automatically and appended after Power Infusion. Type /use, then Shift-click an item or spell to insert its name; click Create macro to apply.", 10, C.muted)
+    local extraHelp = CreateLabel(card, "Appended after Power Infusion. Type /use, then Shift-click an item or spell to insert its name; click Save to update the macro.", 10, C.muted)
     extraHelp:SetPoint("TOPLEFT", extraTitle, "BOTTOMLEFT", 0, -4)
     extraHelp:SetPoint("RIGHT", -16, 0)
 
@@ -728,14 +728,25 @@ function UI:BuildMacrosPage()
 
     local lengthLabel = CreateLabel(card, "", 10, C.muted)
     lengthLabel:SetPoint("TOPRIGHT", -16, -382)
+    local saveExtraButton = CreateButton(card, "Save", 86, 28, true)
+    saveExtraButton:SetPoint("TOPLEFT", 16, -378)
+    saveExtraButton:Hide()
+
+    local savedExtraText = NS:GetPIMacroExtraText()
     local function UpdateExtraText()
-        NS:SetPIMacroExtraText(extraInput:GetText())
-        local length = #NS:GetPIMacroExtraText()
+        local currentText = NS:NormalizePIMacroExtraText(extraInput:GetText())
+        local length = #currentText
         lengthLabel:SetText(length .. " / " .. NS.PI_MACRO_EXTRA_TEXT_LIMIT .. " extra characters")
         lengthLabel:SetTextColor(unpack(C.muted))
+        saveExtraButton:SetShown(currentText ~= savedExtraText)
     end
-    extraInput:SetChangeHandler(function(_, userInput)
-        if userInput then UpdateExtraText() end
+    extraInput:SetChangeHandler(UpdateExtraText)
+    saveExtraButton:SetScript("OnClick", function()
+        local currentText = NS:NormalizePIMacroExtraText(extraInput:GetText())
+        if NS:SavePIMacroExtraTextToMacro(currentText) then
+            savedExtraText = currentText
+            UpdateExtraText()
+        end
     end)
     UpdateExtraText()
 end

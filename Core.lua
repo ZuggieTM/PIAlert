@@ -174,6 +174,57 @@ function NS:CreateOrUpdatePIMacro()
     return true
 end
 
+function NS:SavePIMacroExtraTextToMacro(text)
+    if type(GetMacroInfo) ~= "function" or type(EditMacro) ~= "function" then
+        self:Print("The macro API is currently unavailable.")
+        return false
+    end
+
+    local existingIndex = self:FindGeneralPIMacro()
+    if not existingIndex then
+        self:Print("Create a PI Alert macro before saving additional macro text.")
+        return false
+    end
+
+    local macroName, macroIcon, macroBody = GetMacroInfo(existingIndex)
+    macroBody = type(macroBody) == "string" and macroBody:gsub("\r\n?", "\n") or ""
+    local firstLine, secondLine = macroBody:match("^([^\n]*)\n([^\n]*)")
+    if firstLine == nil or secondLine == nil then
+        self:Print("The PI Alert macro must contain at least two lines before additional text can be saved.")
+        return false
+    end
+
+    local extraText = self:NormalizePIMacroExtraText(text)
+    local updatedBody = firstLine .. "\n" .. secondLine
+    if extraText ~= "" then updatedBody = updatedBody .. "\n" .. extraText end
+    if #updatedBody > MAX_MACRO_BODY_LENGTH then
+        self:Print("The PI Alert macro is " .. #updatedBody .. "/" .. MAX_MACRO_BODY_LENGTH
+            .. " characters. Shorten the additional macro text and try again.")
+        return false
+    end
+
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        self:Print("Combat blocks macro edits. Save the additional macro text after leaving combat.")
+        return false
+    end
+
+    local ok, macroIndex = pcall(
+        EditMacro,
+        existingIndex,
+        macroName or PI_MACRO_NAME,
+        macroIcon or PI_MACRO_ICON,
+        updatedBody
+    )
+    if not ok or not macroIndex then
+        self:Print("Could not update the PI Alert macro.")
+        return false
+    end
+
+    self:SetPIMacroExtraText(extraText)
+    self:Print("Saved the additional text to the PI Alert macro.")
+    return true
+end
+
 function NS:SetPIMacroMode(mode, target)
     if not self.db then return false end
     if mode ~= "PLAYER" and mode ~= "FOCUS" and mode ~= "MOUSEOVER" then return false end
