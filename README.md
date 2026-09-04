@@ -2,7 +2,7 @@
 
 PI Alert is a Power Infusion assistant for World of Warcraft Retail. It highlights eligible party and raid members when they activate a configured major cooldown, helping Priests coordinate Power Infusion during the content where it matters.
 
-Version: **1.2.0**
+Version: **1.2.1**
 Game version: **Midnight 12.1**
 
 ## Features
@@ -13,7 +13,8 @@ Game version: **Midnight 12.1**
 - Highlight requesters with Pixel Glow, AutoCast Glow, or Button Glow.
 - Show a Power Infusion icon or the tracked spell icon on party and raid frames.
 - Display a movable central Power Infusion alert icon.
-- Create Player, Focus, and Mouseover Power Infusion macros under General Macros.
+- Create Player, Focus, and Mouseover Power Infusion macros under General Macros,
+  with optional additional commands for items, spells, or other actions.
 - Add requesters or set the Player macro target from the unit right-click menu.
 
 ## Getting started
