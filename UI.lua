@@ -157,10 +157,11 @@ local function CreateScrollingEditBox(parent, width, height, placeholder)
     fontHeight = tonumber(fontHeight) or 14
 
     local caret = box:CreateTexture(nil, "OVERLAY")
-    caret:SetColorTexture(C.text[1], C.text[2], C.text[3], 1)
-    caret:SetSize(1, fontHeight)
+    caret:SetColorTexture(1, 1, 1, 1)
+    caret:SetSize(2, fontHeight)
     caret:Hide()
 
+    local CARET_BLINK_PHASE = 0.53
     local caretElapsed = 0
     local function StopCaretBlink()
         container:SetScript("OnUpdate", nil)
@@ -172,8 +173,8 @@ local function CreateScrollingEditBox(parent, width, height, placeholder)
         caret:SetAlpha(1)
         caret:Show()
         container:SetScript("OnUpdate", function(_, elapsed)
-            caretElapsed = (caretElapsed + elapsed) % 1
-            caret:SetAlpha(caretElapsed < 0.5 and 1 or 0)
+            caretElapsed = (caretElapsed + elapsed) % (CARET_BLINK_PHASE * 2)
+            caret:SetAlpha(caretElapsed < CARET_BLINK_PHASE and 1 or 0)
         end)
     end
 
@@ -225,7 +226,7 @@ local function CreateScrollingEditBox(parent, width, height, placeholder)
     box:SetScript("OnCursorChanged", function(_, x, y, _, cursorHeight)
         caret:ClearAllPoints()
         caret:SetPoint("TOPLEFT", box, "TOPLEFT", (x or 0) + 2, y or 0)
-        caret:SetSize(1, cursorHeight or fontHeight)
+        caret:SetSize(2, cursorHeight or fontHeight)
 
         local cursorY = -(y or 0)
         local offset = scroll:GetVerticalScroll()
