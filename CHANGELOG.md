@@ -2,35 +2,11 @@
 
 ## 1.2.1
 
-Generated Power Infusion macros can now include additional commands, with a
-more capable multiline editor in the options window.
-
 ### New
 
-- **Additional macro text.** Add up to 80 characters of custom macro commands,
-  such as `/use 13`, which PI Alert appends after the generated Power Infusion
-  cast whenever any of its macro buttons is used.
-- **Shift-click insertion.** While the additional-text field is focused,
-  Shift-click an item or spell to insert its name at the caret.
-
-### Changed
-
-- The additional-text editor has a fixed four-line height and becomes
-  scrollable when its contents exceed that space.
-- Its counter reports only the fixed 80-character allowance for custom text,
-  independently of manual edits made directly to the generated macro. PI Alert
-  still validates the complete macro against World of Warcraft's 255-character
-  limit before creating or updating it.
-- The multiline editor now has a wider, native-style blinking caret and retains
-  the accent focus border used by the other inputs.
-
-### Fixed
-
-- Fixed an unsupported text-height call that could interrupt options-window
-  construction after login or `/reload`, causing every settings page to appear
-  stacked on top of the others.
-- Fixed the custom caret remaining permanently visible because repeated cursor
-  callbacks continuously restarted its blink timer.
+- **Additional macro commands.** Add custom macro lines, such as `/use 13`,
+  after the generated Power Infusion cast. Item and spell names can also be
+  inserted into the field by Shift-clicking them.
 
 ## 1.2.0
 
