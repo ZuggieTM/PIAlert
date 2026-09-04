@@ -3,6 +3,12 @@ local ADDON_NAME, NS = ...
 local UI = {}
 NS.UI = UI
 
+local function MacroLinkDisplayName(text)
+    if type(text) ~= "string" or text == "" then return nil end
+    local display = text:match("|h%[(.-)%]|h") or text:match("|h(.-)|h") or text
+    return display:match("^%[(.-)%]$") or display
+end
+
 local C = {
     bg = {0.025, 0.037, 0.052, 0.98},
     panel = {0.045, 0.062, 0.082, 0.98},
@@ -102,6 +108,172 @@ local function CreateEditBox(parent, width, height, placeholder)
         oldChanged = fn
     end
 
+    return box
+end
+
+local function CreateScrollingEditBox(parent, width, height, placeholder)
+    local container = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    container:SetSize(width, height)
+    SetBackdrop(container, {0.025, 0.037, 0.050, 1}, C.border)
+
+    local scroll = CreateFrame("ScrollFrame", nil, container)
+    scroll:SetPoint("TOPLEFT", 8, -8)
+    scroll:SetPoint("BOTTOMRIGHT", -20, 8)
+    scroll:EnableMouseWheel(true)
+
+    local box = CreateFrame("EditBox", nil, scroll)
+    box:SetMultiLine(true)
+    box:SetAutoFocus(false)
+    box:SetFontObject(ChatFontNormal)
+    box:SetTextColor(unpack(C.text))
+    box:SetTextInsets(2, 2, 0, 0)
+    box:SetJustifyH("LEFT")
+    box:SetJustifyV("TOP")
+    box:SetWidth(width - 28)
+    box:SetHeight(height - 16)
+    scroll:SetScrollChild(box)
+
+    local hint = CreateLabel(container, placeholder or "", 12, C.muted)
+    hint:SetPoint("TOPLEFT", 10, -10)
+    hint:SetPoint("RIGHT", -22, 0)
+    hint:SetJustifyV("TOP")
+    hint:SetAlpha(0.65)
+
+    local scrollbar = CreateFrame("Slider", nil, container, "BackdropTemplate")
+    scrollbar:SetPoint("TOPRIGHT", -6, -8)
+    scrollbar:SetPoint("BOTTOMRIGHT", -6, 8)
+    scrollbar:SetWidth(7)
+    scrollbar:SetOrientation("VERTICAL")
+    SetBackdrop(scrollbar, C.panel2, C.borderSoft)
+    local thumb = scrollbar:CreateTexture(nil, "OVERLAY")
+    thumb:SetColorTexture(C.accent[1], C.accent[2], C.accent[3], 0.9)
+    thumb:SetSize(7, 20)
+    scrollbar:SetThumbTexture(thumb)
+    scrollbar:Hide()
+
+    local changingScroll = false
+    local lastMaxScroll = 0
+    local _, fontHeight = ChatFontNormal:GetFont()
+    fontHeight = tonumber(fontHeight) or 14
+
+    local caret = box:CreateTexture(nil, "OVERLAY")
+    caret:SetColorTexture(1, 1, 1, 1)
+    caret:SetSize(3, fontHeight)
+    caret:Hide()
+
+    local CARET_BLINK_PHASE = 0.53
+    local caretElapsed = 0
+    local caretBlinking = false
+    local function ResetCaretBlink()
+        caretElapsed = 0
+        caret:SetAlpha(1)
+        caret:Show()
+    end
+
+    local function StopCaretBlink()
+        caretBlinking = false
+        container:SetScript("OnUpdate", nil)
+        caret:Hide()
+    end
+
+    local function StartCaretBlink()
+        if caretBlinking then return end
+        caretBlinking = true
+        ResetCaretBlink()
+        container:SetScript("OnUpdate", function(_, elapsed)
+            caretElapsed = (caretElapsed + elapsed) % (CARET_BLINK_PHASE * 2)
+            caret:SetAlpha(caretElapsed < CARET_BLINK_PHASE and 1 or 0)
+        end)
+    end
+
+    local function GetContentHeight()
+        local lineCount = 0
+        for line in ((box:GetText() or "") .. "\n"):gmatch("(.-)\n") do
+            -- Macro lines are usually short. Account for wrapped long lines as
+            -- well, without relying on FontString-only measurement methods.
+            lineCount = lineCount + math.max(1, math.ceil(#line / 76))
+        end
+        return lineCount * fontHeight + 4
+    end
+
+    local function RefreshScroll()
+        local viewHeight = math.max(1, scroll:GetHeight())
+        local contentHeight = math.max(viewHeight, GetContentHeight())
+        box:SetHeight(contentHeight)
+
+        local maxScroll = math.max(0, contentHeight - viewHeight)
+        scrollbar:SetMinMaxValues(0, maxScroll)
+        if maxScroll > 0 then
+            scrollbar:Show()
+            if scroll:GetVerticalScroll() > maxScroll then scroll:SetVerticalScroll(maxScroll) end
+        else
+            scroll:SetVerticalScroll(0)
+            scrollbar:Hide()
+        end
+        return maxScroll
+    end
+
+    scrollbar:SetScript("OnValueChanged", function(_, value)
+        if changingScroll then return end
+        scroll:SetVerticalScroll(value)
+    end)
+    scroll:SetScript("OnVerticalScroll", function(_, offset)
+        changingScroll = true
+        scrollbar:SetValue(offset)
+        changingScroll = false
+    end)
+    local function ScrollByWheel(delta)
+        local _, maxScroll = scrollbar:GetMinMaxValues()
+        scroll:SetVerticalScroll(math.max(0, math.min(maxScroll, scroll:GetVerticalScroll() - delta * 24)))
+    end
+    scroll:SetScript("OnMouseWheel", function(_, delta) ScrollByWheel(delta) end)
+    scroll:SetScript("OnSizeChanged", function()
+        lastMaxScroll = RefreshScroll()
+    end)
+
+    box:SetScript("OnCursorChanged", function(_, x, y, _, cursorHeight)
+        caret:ClearAllPoints()
+        caret:SetPoint("TOPLEFT", box, "TOPLEFT", (x or 0) + 2, y or 0)
+        caret:SetSize(3, cursorHeight or fontHeight)
+
+        local cursorY = -(y or 0)
+        local offset = scroll:GetVerticalScroll()
+        if cursorY < offset then
+            scroll:SetVerticalScroll(cursorY)
+        elseif cursorY + (cursorHeight or fontHeight) > offset + scroll:GetHeight() then
+            scroll:SetVerticalScroll(cursorY + (cursorHeight or fontHeight) - scroll:GetHeight())
+        end
+
+        if box:HasFocus() then StartCaretBlink() end
+    end)
+    box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEditFocusGained", function()
+        container:SetBackdropBorderColor(unpack(C.accentDim))
+        StartCaretBlink()
+    end)
+    box:SetScript("OnEditFocusLost", function()
+        container:SetBackdropBorderColor(unpack(C.border))
+        StopCaretBlink()
+    end)
+    box:EnableMouseWheel(true)
+    box:SetScript("OnMouseWheel", function(_, delta) ScrollByWheel(delta) end)
+
+    local oldChanged
+    box:SetScript("OnTextChanged", function(self, userInput)
+        local wasAtBottom = scroll:GetVerticalScroll() >= lastMaxScroll - 1
+        hint:SetShown(self:GetText() == "")
+        lastMaxScroll = RefreshScroll()
+        if userInput and wasAtBottom then scroll:SetVerticalScroll(lastMaxScroll) end
+        if userInput and self:HasFocus() then ResetCaretBlink() end
+        if oldChanged then oldChanged(self, userInput) end
+    end)
+
+    function box:SetChangeHandler(fn)
+        oldChanged = fn
+    end
+
+    box.container = container
+    lastMaxScroll = RefreshScroll()
     return box
 end
 
@@ -484,7 +656,7 @@ function UI:BuildMacrosPage()
     self.pages.Macros = page
     CreatePageHeading(page, "Macros", "Create a General Power Infusion macro with the targeting behavior you prefer.")
 
-    local card = CreateCard(page, 632, 254)
+    local card = CreateCard(page, 632, 414)
     card:SetPoint("TOPLEFT", 0, -72)
 
     local title = CreateLabel(card, "Power Infusion macros", 15, C.text)
@@ -523,6 +695,49 @@ function UI:BuildMacrosPage()
         186,
         function() NS:SetPIMacroMode("MOUSEOVER") end
     )
+
+    local extraTitle = CreateLabel(card, "Additional macro text", 11, C.text)
+    extraTitle:SetPoint("TOPLEFT", 16, -254)
+    local extraHelp = CreateLabel(card, "Saved automatically and appended after Power Infusion. Type /use, then Shift-click an item or spell to insert its name; click Create macro to apply.", 10, C.muted)
+    extraHelp:SetPoint("TOPLEFT", extraTitle, "BOTTOMLEFT", 0, -4)
+    extraHelp:SetPoint("RIGHT", -16, 0)
+
+    local extraInput = CreateScrollingEditBox(card, 600, 78, "/use 13\n/use 14")
+    extraInput.container:SetPoint("TOPLEFT", 16, -294)
+    extraInput:SetMaxLetters(NS.PI_MACRO_EXTRA_TEXT_LIMIT)
+    extraInput:SetText(NS:GetPIMacroExtraText())
+    self.macroExtraInput = extraInput
+
+    if not self.macroLinkHookInstalled then
+        local function InsertMacroLink(text)
+            local input = UI.macroExtraInput
+            if not input or not input:IsVisible() or not input:HasFocus() then return end
+
+            local display = MacroLinkDisplayName(text)
+            if display and display ~= "" then input:Insert(display) end
+        end
+
+        if ChatFrameUtil and type(ChatFrameUtil.InsertLink) == "function" then
+            hooksecurefunc(ChatFrameUtil, "InsertLink", InsertMacroLink)
+            self.macroLinkHookInstalled = true
+        elseif type(ChatEdit_InsertLink) == "function" then
+            hooksecurefunc("ChatEdit_InsertLink", InsertMacroLink)
+            self.macroLinkHookInstalled = true
+        end
+    end
+
+    local lengthLabel = CreateLabel(card, "", 10, C.muted)
+    lengthLabel:SetPoint("TOPRIGHT", -16, -382)
+    local function UpdateExtraText()
+        NS:SetPIMacroExtraText(extraInput:GetText())
+        local length = #NS:GetPIMacroExtraText()
+        lengthLabel:SetText(length .. " / " .. NS.PI_MACRO_EXTRA_TEXT_LIMIT .. " extra characters")
+        lengthLabel:SetTextColor(unpack(C.muted))
+    end
+    extraInput:SetChangeHandler(function(_, userInput)
+        if userInput then UpdateExtraText() end
+    end)
+    UpdateExtraText()
 end
 
 -- -----------------------------------------------------------------------------

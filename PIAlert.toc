@@ -2,7 +2,7 @@
 ## Title: PI Alert
 ## Notes: Power Infusion alerts from tracked allied cooldown activations.
 ## Author: Zuggie
-## Version: 1.2.0
+## Version: 1.2.1
 ## SavedVariables: PIAlertDB
 ## IconTexture: Interface\AddOns\PIAlert\Media\pialert-icon.tga
 
