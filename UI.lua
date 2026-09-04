@@ -3,6 +3,12 @@ local ADDON_NAME, NS = ...
 local UI = {}
 NS.UI = UI
 
+local function MacroLinkDisplayName(text)
+    if type(text) ~= "string" or text == "" then return nil end
+    local display = text:match("|h%[(.-)%]|h") or text:match("|h(.-)|h") or text
+    return display:match("^%[(.-)%]$") or display
+end
+
 local C = {
     bg = {0.025, 0.037, 0.052, 0.98},
     panel = {0.045, 0.062, 0.082, 0.98},
@@ -641,7 +647,7 @@ function UI:BuildMacrosPage()
 
     local extraTitle = CreateLabel(card, "Additional macro text", 11, C.text)
     extraTitle:SetPoint("TOPLEFT", 16, -254)
-    local extraHelp = CreateLabel(card, "Optional commands appended after Power Infusion, such as /use 13. Saved automatically; click any Create macro button to update the macro.", 10, C.muted)
+    local extraHelp = CreateLabel(card, "Saved automatically and appended after Power Infusion. Type /use, then Shift-click an item or spell to insert its name; click Create macro to apply.", 10, C.muted)
     extraHelp:SetPoint("TOPLEFT", extraTitle, "BOTTOMLEFT", 0, -4)
     extraHelp:SetPoint("RIGHT", -16, 0)
 
@@ -650,6 +656,24 @@ function UI:BuildMacrosPage()
     extraInput:SetMaxLetters(NS.PI_MACRO_EXTRA_TEXT_LIMIT)
     extraInput:SetText(NS:GetPIMacroExtraText())
     self.macroExtraInput = extraInput
+
+    if not self.macroLinkHookInstalled then
+        local function InsertMacroLink(text)
+            local input = UI.macroExtraInput
+            if not input or not input:IsVisible() or not input:HasFocus() then return end
+
+            local display = MacroLinkDisplayName(text)
+            if display and display ~= "" then input:Insert(display) end
+        end
+
+        if ChatFrameUtil and type(ChatFrameUtil.InsertLink) == "function" then
+            hooksecurefunc(ChatFrameUtil, "InsertLink", InsertMacroLink)
+            self.macroLinkHookInstalled = true
+        elseif type(ChatEdit_InsertLink) == "function" then
+            hooksecurefunc("ChatEdit_InsertLink", InsertMacroLink)
+            self.macroLinkHookInstalled = true
+        end
+    end
 
     local lengthLabel = CreateLabel(card, "", 10, C.muted)
     lengthLabel:SetPoint("TOPRIGHT", -16, -382)
