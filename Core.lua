@@ -52,11 +52,17 @@ end
 local PI_MACRO_NAME = "PI Alert"
 local PI_MACRO_ICON = 134400 -- INV_Misc_QuestionMark; #showtooltip supplies the live spell icon.
 local MAX_MACRO_BODY_LENGTH = 255
+local MAX_MACRO_TARGET_LENGTH = 80
+local MAX_TARGET_MACRO_BODY = "#showtooltip Power Infusion\n/cast [@"
+    .. string.rep("X", MAX_MACRO_TARGET_LENGTH)
+    .. ",help,exists,nodead][@mouseover,help,exists,nodead] Power Infusion"
+local MAX_MACRO_EXTRA_TEXT_LENGTH = MAX_MACRO_BODY_LENGTH - #MAX_TARGET_MACRO_BODY - 1
+NS.PI_MACRO_EXTRA_TEXT_LIMIT = MAX_MACRO_EXTRA_TEXT_LENGTH
 
 function NS:NormalizeMacroTarget(target)
     if type(target) ~= "string" then return nil end
     target = strtrim(target)
-    if target == "" or #target > 80 or target:find("[%[%],/%s]") then return nil end
+    if target == "" or #target > MAX_MACRO_TARGET_LENGTH or target:find("[%[%],/%s]") then return nil end
     return target
 end
 

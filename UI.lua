@@ -123,6 +123,7 @@ local function CreateScrollingEditBox(parent, width, height, placeholder)
     box:SetTextInsets(2, 2, 0, 0)
     box:SetJustifyH("LEFT")
     box:SetJustifyV("TOP")
+    if type(box.SetBlinkSpeed) == "function" then box:SetBlinkSpeed(0.5) end
     box:SetWidth(width - 28)
     box:SetHeight(height - 16)
     scroll:SetScrollChild(box)
@@ -646,6 +647,7 @@ function UI:BuildMacrosPage()
 
     local extraInput = CreateScrollingEditBox(card, 600, 78, "/use 13\n/use 14")
     extraInput.container:SetPoint("TOPLEFT", 16, -294)
+    extraInput:SetMaxLetters(NS.PI_MACRO_EXTRA_TEXT_LIMIT)
     extraInput:SetText(NS:GetPIMacroExtraText())
     self.macroExtraInput = extraInput
 
@@ -653,9 +655,9 @@ function UI:BuildMacrosPage()
     lengthLabel:SetPoint("TOPRIGHT", -16, -382)
     local function UpdateExtraText()
         NS:SetPIMacroExtraText(extraInput:GetText())
-        local length = #NS:BuildPIMacroBody()
-        lengthLabel:SetText(length .. " / 255 characters")
-        lengthLabel:SetTextColor(unpack(length > 255 and C.danger or C.muted))
+        local length = #NS:GetPIMacroExtraText()
+        lengthLabel:SetText(length .. " / " .. NS.PI_MACRO_EXTRA_TEXT_LIMIT .. " extra characters")
+        lengthLabel:SetTextColor(unpack(C.muted))
     end
     extraInput:SetChangeHandler(function(_, userInput)
         if userInput then UpdateExtraText() end
